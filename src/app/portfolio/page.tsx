@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { portfolio } from "@/data/portfolio";
+import { portfolio, portfolioCategories } from "@/data/portfolio";
 
 export const metadata: Metadata = {
   title: "實績案例 | 汎德工程顧問",
@@ -18,22 +18,30 @@ export default function PortfolioPage() {
         </div>
       </section>
 
-      <section className="px-5 py-12">
-        <div className="mx-auto grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
-          {portfolio.map((p) => (
-            <div key={p.id} className="border border-line">
-              <div className="flex aspect-[4/3] items-end bg-[repeating-linear-gradient(45deg,var(--line)_0,var(--line)_1px,transparent_1px,transparent_14px)] bg-accent-soft p-2.5">
-                <span className="font-mono text-[0.68rem] text-muted">{p.id.toUpperCase()}</span>
-              </div>
-              <div className="p-4">
-                <div className="text-[0.7rem] font-semibold tracking-wide text-accent">{p.category}</div>
-                <h3 className="mt-1 text-[0.92rem] font-bold">{p.title}</h3>
-                <p className="mt-1 text-[0.8rem] text-muted">{p.description}</p>
+      {portfolioCategories.map((category) => {
+        const items = portfolio.filter((p) => p.category === category);
+        if (items.length === 0) return null;
+        return (
+          <section key={category} className="border-b border-line px-5 py-11 last:border-b-0">
+            <div className="mx-auto max-w-2xl">
+              <span className="eyebrow mb-4 block">{category}</span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {items.map((p) => (
+                  <div key={p.id} className="border border-line">
+                    <div className="flex aspect-[4/3] items-end bg-[repeating-linear-gradient(45deg,var(--line)_0,var(--line)_1px,transparent_1px,transparent_14px)] bg-accent-soft p-2.5">
+                      <span className="font-mono text-[0.68rem] text-muted">{p.id.toUpperCase()}</span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-[0.92rem] font-bold leading-snug">{p.title}</h3>
+                      <p className="mt-1 text-[0.8rem] text-muted">{p.description}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
+        );
+      })}
     </>
   );
 }
