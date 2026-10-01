@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
+import { contactInfo } from "@/data/contact";
 
 export const metadata: Metadata = {
   title: "聯絡我們 | 汎德工程顧問",
 };
-
-// TODO: 地址、電話、Email 為佔位資訊，請替換為正式聯絡資訊。
-const contactInfo = [
-  { label: "地址", value: "請補上正式地址" },
-  { label: "電話", value: "請補上正式電話" },
-  { label: "Email", value: "請補上正式 Email" },
-];
 
 export default function ContactPage() {
   return (
