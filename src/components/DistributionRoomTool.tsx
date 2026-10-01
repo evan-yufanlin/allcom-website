@@ -1,0 +1,213 @@
+"use client";
+
+import { useState } from "react";
+import {
+  LOCATION_NOTES,
+  SOURCES,
+  reviewDistributionRoom,
+  type CalcStep,
+  type SpecItem,
+} from "@/lib/distributionRoom";
+
+const ASSUMPTIONS = [
+  "本檢討適用於低壓新設、且依營業規章第66條須設置配電場所之建案（例如採三相四線式 220/380 V 供電，或位於地下配電地區、六樓以上達一定樓地板面積者）。",
+  "五樓以下一棟一戶連棟、採單相三線式 110/220 V 供電者，得依營業規章第67條第2項第2款以較小面積計算，本檢討未納入。",
+  "停車位擴增面積依台電配電處函文辦理，營業規章尚未納入；起造人如不配合，須填具切結書併入配電場所圖審資料。",
+  "規格需求依合計面積（基本面積＋停車位擴增）判斷，擴增部分為未來可能增設變壓器之空間，載重、散熱等均應一併考量。",
+];
+
+function parsePositive(raw: string) {
+  if (raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : NaN;
+}
+
+function parseSpaces(raw: string) {
+  if (raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : NaN;
+}
+
+export default function DistributionRoomTool() {
+  const [areaRaw, setAreaRaw] = useState("");
+  const [spacesRaw, setSpacesRaw] = useState("");
+
+  const area = parsePositive(areaRaw);
+  const spaces = parseSpaces(spacesRaw);
+  const areaError = Number.isNaN(area) ? "請輸入大於 0 的數字" : null;
+  const spacesError = Number.isNaN(spaces) ? "請輸入 0 以上的整數" : null;
+  const ready = typeof area === "number" && !Number.isNaN(area) && typeof spaces === "number" && !Number.isNaN(spaces);
+  const result = ready ? reviewDistributionRoom(area, spaces) : null;
+
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        className="grid grid-cols-1 gap-4 border border-line bg-surface p-5 sm:grid-cols-2"
+      >
+        <Field
+          id="floor-area"
+          label="總樓地板面積"
+          unit="m²"
+          value={areaRaw}
+          onChange={setAreaRaw}
+          error={areaError}
+          inputMode="decimal"
+          placeholder="例如 15000"
+        />
+        <Field
+          id="parking-spaces"
+          label="汽車停車位數量"
+          unit="格"
+          value={spacesRaw}
+          onChange={setSpacesRaw}
+          error={spacesError}
+          inputMode="numeric"
+          placeholder="例如 180"
+        />
+        <p className="text-[0.75rem] leading-relaxed text-muted sm:col-span-2">
+          適用：台電低壓新設。總樓地板面積以同一建造執照所載為準。
+        </p>
+      </form>
+
+      {result ? (
+        <>
+          <section className="border border-accent bg-accent-soft p-5">
+            <span className="eyebrow">檢討結果</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-mono text-[2.4rem] leading-none font-semibold tabular-nums text-accent">
+                {result.total}
+              </span>
+              <span className="text-[1rem] font-bold">m²</span>
+            </div>
+            <p className="mt-2 text-[0.85rem] text-muted">
+              台電配電場所應設面積 = 基本面積 {result.base.value} m² ＋ 停車位擴增 {result.parking.value} m²
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="text-[1.1rem] font-extrabold">計算式</h2>
+            <Step title="① 基本面積" step={result.base} />
+            <Step title="② 停車位擴增面積" step={result.parking} />
+            <div className="border border-line bg-surface p-4">
+              <div className="text-[0.85rem] font-bold">③ 合計</div>
+              <p className="mt-2 font-mono text-[0.85rem] tabular-nums">
+                {result.base.value} + {result.parking.value} = {result.total} m²
+              </p>
+            </div>
+          </section>
+
+          <SpecTable title="配電場所規格需求" items={result.specs} />
+          <SpecTable title="設置位置注意事項" items={LOCATION_NOTES} />
+
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[1.1rem] font-extrabold">適用範圍與說明</h2>
+            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[0.82rem] leading-relaxed text-muted">
+              {ASSUMPTIONS.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h2 className="text-[1.1rem] font-extrabold">引用法規</h2>
+            <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[0.82rem] leading-relaxed">
+              <li>{SOURCES.rules}：第66條、第67條</li>
+              <li>{SOURCES.evLetter}（附件1：建築物停車位數量對應擴大配電場所面積對照表）</li>
+              <li>{SOURCES.spec}：第3條、第4條、第5條、第6條、第8條、第9條</li>
+            </ol>
+          </section>
+
+          <p className="border-t border-dashed border-line pt-4 text-[0.75rem] leading-relaxed text-muted">
+            本檢討結果僅供規劃初期參考，實際配電場所面積、位置及規格，仍以台灣電力公司各區營業處審查結果為準。
+          </p>
+        </>
+      ) : (
+        <p className="border border-dashed border-line p-5 text-center text-[0.85rem] text-muted">
+          輸入總樓地板面積與汽車停車位數量後，即顯示檢討結果
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Field({
+  id,
+  label,
+  unit,
+  value,
+  onChange,
+  error,
+  inputMode,
+  placeholder,
+}: {
+  id: string;
+  label: string;
+  unit: string;
+  value: string;
+  onChange: (v: string) => void;
+  error: string | null;
+  inputMode: "decimal" | "numeric";
+  placeholder: string;
+}) {
+  return (
+    <label htmlFor={id} className="flex flex-col gap-1.5">
+      <span className="text-[0.85rem] font-bold">{label}</span>
+      <span className="flex items-center border border-line bg-background focus-within:border-accent">
+        <input
+          id={id}
+          type="text"
+          inputMode={inputMode}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value.replace(/,/g, ""))}
+          aria-invalid={!!error}
+          className="min-w-0 flex-1 bg-transparent px-3 py-2.5 font-mono text-[1rem] tabular-nums outline-none"
+        />
+        <span className="px-3 text-[0.85rem] text-muted">{unit}</span>
+      </span>
+      {error && <span className="text-[0.75rem] text-[var(--phase-r)]">{error}</span>}
+    </label>
+  );
+}
+
+function Step({ title, step }: { title: string; step: CalcStep }) {
+  return (
+    <div className="border border-line bg-surface p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[0.85rem] font-bold">{title}</span>
+        <span className="font-mono text-[0.95rem] font-semibold tabular-nums text-accent">{step.value} m²</span>
+      </div>
+      <ul className="mt-2 flex flex-col gap-1 font-mono text-[0.8rem] leading-relaxed tabular-nums">
+        {step.lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[0.72rem] text-muted">依據：{step.cite}</p>
+    </div>
+  );
+}
+
+function SpecTable({ title, items }: { title: string; items: SpecItem[] }) {
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-[1.1rem] font-extrabold">{title}</h2>
+      <div className="flex flex-col border border-line">
+        {items.map((s, i) => (
+          <div
+            key={s.item}
+            className={`grid grid-cols-1 gap-1 bg-surface p-3.5 sm:grid-cols-[8.5rem_1fr] sm:gap-4 ${
+              i > 0 ? "border-t border-line" : ""
+            }`}
+          >
+            <div className="text-[0.82rem] font-bold">{s.item}</div>
+            <div className="flex flex-col gap-1">
+              <div className="text-[0.85rem] leading-relaxed">{s.requirement}</div>
+              <div className="text-[0.7rem] leading-relaxed text-muted">依據：{s.cite}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
