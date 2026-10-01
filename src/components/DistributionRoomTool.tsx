@@ -18,8 +18,6 @@ function dateStamp(d: Date, sep: string) {
   return [d.getFullYear(), mm, dd].join(sep);
 }
 
-const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]/g;
-
 function parsePositive(raw: string) {
   if (raw.trim() === "") return null;
   const n = Number(raw);
@@ -35,8 +33,6 @@ function parseSpaces(raw: string) {
 export default function DistributionRoomTool() {
   const [areaRaw, setAreaRaw] = useState("");
   const [spacesRaw, setSpacesRaw] = useState("");
-  // null = 使用預設檔名；面積或車位數一改就回到預設，避免檔名數字與內容不符
-  const [customName, setCustomName] = useState<string | null>(null);
 
   const area = parsePositive(areaRaw);
   const spaces = parseSpaces(spacesRaw);
@@ -48,9 +44,7 @@ export default function DistributionRoomTool() {
       : null;
   const result = review?.result;
   const today = new Date();
-  const defaultName = review ? `配電場所面積檢討_${review.area}m2_${review.spaces}格-${dateStamp(today, "")}` : "";
-  const nameInput = customName ?? defaultName;
-  const fileName = nameInput.replace(/\.pdf$/i, "").replace(INVALID_FILENAME_CHARS, "").trim() || defaultName;
+  const fileName = review ? `配電場所面積檢討_${review.area}m2_${review.spaces}格-${dateStamp(today, "")}` : "";
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8">
@@ -63,10 +57,7 @@ export default function DistributionRoomTool() {
           label="總樓地板面積"
           unit="m²"
           value={areaRaw}
-          onChange={(v) => {
-            setAreaRaw(v);
-            setCustomName(null);
-          }}
+          onChange={setAreaRaw}
           error={areaError}
           inputMode="decimal"
           placeholder="例如 15000"
@@ -76,10 +67,7 @@ export default function DistributionRoomTool() {
           label="汽車停車位數量"
           unit="格"
           value={spacesRaw}
-          onChange={(v) => {
-            setSpacesRaw(v);
-            setCustomName(null);
-          }}
+          onChange={setSpacesRaw}
           error={spacesError}
           inputMode="numeric"
           placeholder="例如 180"
@@ -102,16 +90,6 @@ export default function DistributionRoomTool() {
             <p className="mt-2 text-[0.85rem] text-muted">
               台電配電場所應設面積 = 基本面積 {result.base.value} m² ＋ 停車位擴增 {result.parking.value} m²
             </p>
-            <div className="mt-5 border-t border-accent/30 pt-4">
-              <PdfDownload
-                floorArea={review.area}
-                parkingSpaces={review.spaces}
-                result={review.result}
-                generatedOn={dateStamp(today, "/")}
-                fileName={fileName}
-                nameField={{ value: nameInput, onChange: setCustomName }}
-              />
-            </div>
           </section>
 
           <section className="flex flex-col gap-4">
@@ -260,14 +238,12 @@ function PdfDownload({
   result,
   generatedOn,
   fileName,
-  nameField,
 }: {
   floorArea: number;
   parkingSpaces: number;
   result: DistributionRoomResult;
   generatedOn: string;
   fileName: string;
-  nameField?: { value: string; onChange: (v: string) => void };
 }) {
   const [state, setState] = useState<"idle" | "working" | "done" | "error">("idle");
   const [savedAs, setSavedAs] = useState("");
@@ -276,7 +252,7 @@ function PdfDownload({
     const name = `${fileName}.pdf`;
 
     // 存檔視窗必須在點擊當下開啟（瀏覽器限制），所以先選位置，再產生 PDF。
-    // 不支援的瀏覽器（Safari、Firefox、手機）改用一般下載，檔名仍採用上方欄位。
+    // 不支援的瀏覽器（Safari、Firefox、手機）改用一般下載，存成預設檔名。
     let handle: FileSystemFileHandle | null = null;
     const picker = (window as Window & { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
     if (picker) {
@@ -333,24 +309,6 @@ function PdfDownload({
 
   return (
     <div className="flex flex-col gap-2.5">
-      {nameField && (
-        <label htmlFor="pdf-file-name" className="flex flex-col gap-1.5">
-          <span className="text-[0.8rem] font-bold">PDF 檔名</span>
-          <span className="flex items-center border border-line bg-surface focus-within:border-accent">
-            <input
-              id="pdf-file-name"
-              type="text"
-              value={nameField.value}
-              onChange={(e) => {
-                nameField.onChange(e.target.value);
-                setState("idle");
-              }}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[0.85rem] outline-none"
-            />
-            <span className="px-3 text-[0.8rem] text-muted">.pdf</span>
-          </span>
-        </label>
-      )}
       <button
         type="button"
         onClick={download}
@@ -359,9 +317,7 @@ function PdfDownload({
       >
         {state === "working" ? "PDF 產生中…" : "下載檢討結果 PDF"}
       </button>
-      {!nameField && state !== "done" && (
-        <span className="text-[0.72rem] text-muted">檔名：{fileName}.pdf（可於上方檢討結果區修改）</span>
-      )}
+      {state !== "done" && <span className="text-[0.72rem] text-muted">預設檔名：{fileName}.pdf</span>}
       {state === "done" && <span className="text-[0.75rem] text-muted">已儲存：{savedAs}</span>}
       {state === "error" && (
         <span className="text-[0.75rem] text-[var(--phase-r)]">PDF 產生失敗，請重新整理頁面後再試一次。</span>
