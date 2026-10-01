@@ -1,0 +1,12 @@
+export interface TimelineItem {
+  year: string;
+  text: string;
+}
+
+export const timeline: TimelineItem[] = [
+  { year: "2011", text: "成立汎德電機冷凍空調技師事務所" },
+  { year: "2016", text: "改制為汎德工程顧問股份有限公司" },
+  { year: "2014–16", text: "承接台積電 F12P7 辦公大樓 MEP 標機電設計" },
+  { year: "2018–20", text: "完成中華郵政資訊中心新建工程機電設計" },
+  { year: "2020–23", text: "台中港風力發電設備廠房一、二期機電空調設計" },
+];
