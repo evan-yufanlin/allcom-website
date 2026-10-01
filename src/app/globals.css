@@ -8,6 +8,7 @@
   --accent: #4338ca;
   --accent-soft: #eef0ff;
   --line: #e1e2ed;
+  --phase-r: #dc2626;
   color-scheme: light;
 }
 
@@ -20,6 +21,7 @@
     --accent: #9490ff;
     --accent-soft: #201f3a;
     --line: #26273a;
+    --phase-r: #f87171;
     color-scheme: dark;
   }
 }

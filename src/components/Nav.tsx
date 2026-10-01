@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 const links = [
   { href: "/services", label: "服務項目" },
@@ -17,12 +18,13 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
-        <Link href="/" className="flex flex-col leading-tight font-extrabold text-[1.02rem]">
-          <span>
-            汎德<span className="text-accent">・</span>工程顧問
-          </span>
-          <span className="font-mono text-[0.6rem] font-medium tracking-[0.16em] text-muted">
-            ALLCOM
+        <Link href="/" className="flex items-center gap-2.5">
+          <Logo className="h-7 w-11" />
+          <span className="flex flex-col leading-tight">
+            <span className="font-extrabold text-[1.02rem]">汎德</span>
+            <span className="font-mono text-[0.6rem] font-medium tracking-[0.16em] text-muted">
+              ALLCOM
+            </span>
           </span>
         </Link>
 
