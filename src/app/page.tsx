@@ -3,7 +3,7 @@ import ValuesBand from "@/components/ValuesBand";
 import SectionHead from "@/components/SectionHead";
 import { BoltIcon, HvacIcon, WaterIcon, FireIcon } from "@/components/icons";
 import { services } from "@/data/services";
-import { clients } from "@/data/clients";
+import { industries } from "@/data/industries";
 import { portfolio } from "@/data/portfolio";
 import { news } from "@/data/news";
 
@@ -93,12 +93,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Clients */}
+      {/* Industries */}
       <section className="border-b border-line px-5 py-11">
         <div className="mx-auto max-w-2xl">
-          <SectionHead eyebrow="Selected Clients" title="合作夥伴與業主" />
+          <SectionHead eyebrow="Industries Served" title="服務產業" />
           <div className="-mt-4 flex flex-wrap gap-2.5">
-            {clients.map((c) => (
+            {industries.map((c) => (
               <span
                 key={c}
                 className="border border-line bg-surface px-3 py-1.75 font-mono text-[0.74rem]"

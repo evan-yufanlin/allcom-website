@@ -34,6 +34,6 @@ export const news: NewsItem[] = [
   {
     date: "2026.01",
     category: "公司動態",
-    title: "信邦電子銅鑼廠新建工程機電監造啟動",
+    title: "電子零組件廠新建工程機電監造啟動",
   },
 ];

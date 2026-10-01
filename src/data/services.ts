@@ -10,6 +10,7 @@ export interface Service {
   reference?: string;
 }
 
+// 代表案件匿名化處理，不具名呈現。
 export const services: Service[] = [
   {
     id: "electrical",
@@ -19,7 +20,7 @@ export const services: Service[] = [
     description:
       "低壓/高壓配電、照明動力系統規劃設計與監造，具半導體廠辦與無塵室電力系統實績。",
     tags: ["高壓受電", "照明動力", "無塵室電力", "弱電系統"],
-    reference: "代表案件：台積電 F12P7 辦公大樓、格棋化合物半導體二廠電氣工程",
+    reference: "代表案件：半導體廠區辦公大樓、化合物半導體廠電氣工程",
   },
   {
     id: "hvac",
@@ -30,7 +31,7 @@ export const services: Service[] = [
       "空調通風節能系統規劃設計與監造，具無塵室機電工程與綠建築候選標章評估實績。",
     tags: ["無塵室空調", "節能評估", "綠建築候選", "通風換氣"],
     reference:
-      "代表案件：信邦電子銅鑼廠新建工程（無塵室10K）、旺洲極品集合住宅（銀級候選）",
+      "代表案件：電子零組件廠新建工程（無塵室10K）、集合住宅新建工程（銀級候選）",
   },
   {
     id: "water",
