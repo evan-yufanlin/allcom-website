@@ -2,19 +2,15 @@
 
 import { useState } from "react";
 import {
+  ASSUMPTIONS,
+  DISCLAIMER,
   LOCATION_NOTES,
-  SOURCES,
+  REFERENCES,
   reviewDistributionRoom,
   type CalcStep,
+  type DistributionRoomResult,
   type SpecItem,
 } from "@/lib/distributionRoom";
-
-const ASSUMPTIONS = [
-  "本檢討適用於低壓新設、且依營業規章第66條須設置配電場所之建案（例如採三相四線式 220/380 V 供電，或位於地下配電地區、六樓以上達一定樓地板面積者）。",
-  "五樓以下一棟一戶連棟、採單相三線式 110/220 V 供電者，得依營業規章第67條第2項第2款以較小面積計算，本檢討未納入。",
-  "停車位擴增面積依台電配電處函文辦理，營業規章尚未納入；起造人如不配合，須填具切結書併入配電場所圖審資料。",
-  "規格需求依合計面積（基本面積＋停車位擴增）判斷，擴增部分為未來可能增設變壓器之空間，載重、散熱等均應一併考量。",
-];
 
 function parsePositive(raw: string) {
   if (raw.trim() === "") return null;
@@ -36,8 +32,11 @@ export default function DistributionRoomTool() {
   const spaces = parseSpaces(spacesRaw);
   const areaError = Number.isNaN(area) ? "請輸入大於 0 的數字" : null;
   const spacesError = Number.isNaN(spaces) ? "請輸入 0 以上的整數" : null;
-  const ready = typeof area === "number" && !Number.isNaN(area) && typeof spaces === "number" && !Number.isNaN(spaces);
-  const result = ready ? reviewDistributionRoom(area, spaces) : null;
+  const review =
+    typeof area === "number" && !Number.isNaN(area) && typeof spaces === "number" && !Number.isNaN(spaces)
+      ? { area, spaces, result: reviewDistributionRoom(area, spaces) }
+      : null;
+  const result = review?.result;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8">
@@ -70,7 +69,7 @@ export default function DistributionRoomTool() {
         </p>
       </form>
 
-      {result ? (
+      {review && result ? (
         <>
           <section className="border border-accent bg-accent-soft p-5">
             <span className="eyebrow">檢討結果</span>
@@ -83,6 +82,9 @@ export default function DistributionRoomTool() {
             <p className="mt-2 text-[0.85rem] text-muted">
               台電配電場所應設面積 = 基本面積 {result.base.value} m² ＋ 停車位擴增 {result.parking.value} m²
             </p>
+            <div className="mt-4">
+              <PdfButton floorArea={review.area} parkingSpaces={review.spaces} result={review.result} />
+            </div>
           </section>
 
           <section className="flex flex-col gap-4">
@@ -112,15 +114,17 @@ export default function DistributionRoomTool() {
           <section className="flex flex-col gap-2">
             <h2 className="text-[1.1rem] font-extrabold">引用法規</h2>
             <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[0.82rem] leading-relaxed">
-              <li>{SOURCES.rules}：第66條、第67條</li>
-              <li>{SOURCES.evLetter}（附件1：建築物停車位數量對應擴大配電場所面積對照表）</li>
-              <li>{SOURCES.spec}：第3條、第4條、第5條、第6條、第8條、第9條</li>
+              {REFERENCES.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
             </ol>
           </section>
 
           <p className="border-t border-dashed border-line pt-4 text-[0.75rem] leading-relaxed text-muted">
-            本檢討結果僅供規劃初期參考，實際配電場所面積、位置及規格，仍以台灣電力公司各區營業處審查結果為準。
+            {DISCLAIMER}
           </p>
+
+          <PdfButton floorArea={review.area} parkingSpaces={review.spaces} result={review.result} />
         </>
       ) : (
         <p className="border border-dashed border-line p-5 text-center text-[0.85rem] text-muted">
@@ -209,5 +213,68 @@ function SpecTable({ title, items }: { title: string; items: SpecItem[] }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function PdfButton({
+  floorArea,
+  parkingSpaces,
+  result,
+}: {
+  floorArea: number;
+  parkingSpaces: number;
+  result: DistributionRoomResult;
+}) {
+  const [state, setState] = useState<"idle" | "working" | "error">("idle");
+
+  async function download() {
+    setState("working");
+    try {
+      const [{ pdf }, { default: DistributionRoomPdf, registerPdfFonts }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/DistributionRoomPdf"),
+      ]);
+      registerPdfFonts(window.location.origin);
+      const today = new Date();
+      const generatedOn = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(
+        today.getDate(),
+      ).padStart(2, "0")}`;
+      const blob = await pdf(
+        <DistributionRoomPdf
+          floorArea={floorArea}
+          parkingSpaces={parkingSpaces}
+          result={result}
+          generatedOn={generatedOn}
+        />,
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `配電場所面積檢討_${floorArea}m2_${parkingSpaces}格.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setState("idle");
+    } catch (e) {
+      console.error(e);
+      setState("error");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={download}
+        disabled={state === "working"}
+        className="self-start rounded-[2px] bg-accent px-5 py-2.75 text-[0.85rem] font-bold text-white disabled:opacity-60"
+      >
+        {state === "working" ? "PDF 產生中…" : "下載檢討結果 PDF"}
+      </button>
+      {state === "error" && (
+        <span className="text-[0.75rem] text-[var(--phase-r)]">PDF 產生失敗，請重新整理頁面後再試一次。</span>
+      )}
+    </div>
   );
 }

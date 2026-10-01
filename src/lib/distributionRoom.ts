@@ -206,6 +206,22 @@ export function reviewDistributionRoom(floorArea: number, parkingSpaces: number)
   return { base, parking, total, specs: specsFor(total, fixedThreeByFour) };
 }
 
+export const ASSUMPTIONS = [
+  "本檢討適用於低壓新設、且依營業規章第66條須設置配電場所之建案（例如採三相四線式 220/380 V 供電，或位於地下配電地區、六樓以上達一定樓地板面積者）。",
+  "五樓以下一棟一戶連棟、採單相三線式 110/220 V 供電者，得依營業規章第67條第2項第2款以較小面積計算，本檢討未納入。",
+  "停車位擴增面積依台電配電處函文辦理，營業規章尚未納入；起造人如不配合，須填具切結書併入配電場所圖審資料。",
+  "規格需求依合計面積（基本面積＋停車位擴增）判斷，擴增部分為未來可能增設變壓器之空間，載重、散熱等均應一併考量。",
+];
+
+export const REFERENCES = [
+  `${SOURCES.rules}：第66條、第67條`,
+  `${SOURCES.evLetter}（附件1：建築物停車位數量對應擴大配電場所面積對照表）`,
+  `${SOURCES.spec}：第3條、第4條、第5條、第6條、第8條、第9條`,
+];
+
+export const DISCLAIMER =
+  "本檢討結果僅供規劃初期參考，實際配電場所面積、位置及規格，仍以台灣電力公司各區營業處審查結果為準。";
+
 export const LOCATION_NOTES: SpecItem[] = [
   {
     item: "設置樓層",
