@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { news } from "@/data/news";
 
 export const metadata: Metadata = {
-  title: "最新消息 | 汎德工程顧問",
+  title: "最新消息",
 };
 
 export default function NewsPage() {

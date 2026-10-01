@@ -5,7 +5,7 @@ import { timeline } from "@/data/timeline";
 import { team } from "@/data/team";
 
 export const metadata: Metadata = {
-  title: "關於我們 | 汎德工程顧問",
+  title: "關於我們",
 };
 
 export default function AboutPage() {

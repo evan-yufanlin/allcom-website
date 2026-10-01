@@ -16,10 +16,26 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["500", "600"],
 });
 
+const siteUrl = "https://www.allcom.com.tw";
+const siteTitle = "汎德工程顧問 | ALLCOM";
+const siteDescription =
+  "汎德工程顧問股份有限公司——電機、空調系統規劃設計與監造，服務涵蓋半導體廠辦、公共工程與住宅開發。";
+
 export const metadata: Metadata = {
-  title: "汎德工程顧問 | ALLCOM",
-  description:
-    "汎德工程顧問股份有限公司——電機、空調系統規劃設計與監造，服務涵蓋半導體廠辦、公共工程與住宅開發。",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: siteTitle,
+    template: "%s | 汎德工程顧問",
+  },
+  description: siteDescription,
+  openGraph: {
+    type: "website",
+    locale: "zh_TW",
+    url: siteUrl,
+    siteName: "汎德工程顧問",
+    title: siteTitle,
+    description: siteDescription,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

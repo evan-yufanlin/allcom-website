@@ -3,7 +3,7 @@ import ServiceAccordion from "@/components/ServiceAccordion";
 import { services } from "@/data/services";
 
 export const metadata: Metadata = {
-  title: "服務項目 | 汎德工程顧問",
+  title: "服務項目",
 };
 
 export default function ServicesPage() {

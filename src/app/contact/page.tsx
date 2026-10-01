@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { contactInfo } from "@/data/contact";
 
 export const metadata: Metadata = {
-  title: "聯絡我們 | 汎德工程顧問",
+  title: "聯絡我們",
 };
 
 export default function ContactPage() {

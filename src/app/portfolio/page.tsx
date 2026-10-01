@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { portfolio, portfolioCategories } from "@/data/portfolio";
 
 export const metadata: Metadata = {
-  title: "實績案例 | 汎德工程顧問",
+  title: "實績案例",
 };
 
 export default function PortfolioPage() {
