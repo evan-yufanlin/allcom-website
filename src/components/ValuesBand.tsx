@@ -1,7 +1,7 @@
 const values = [
   { label: "專業", caption: "雙證照技師主持" },
   { label: "踏實", caption: "14年+ 工程實務" },
-  { label: "熱忱", caption: "從規劃到監造全程參與" },
+  { label: "熱忱", caption: "從規劃到監造深度參與" },
 ];
 
 export default function ValuesBand() {
