@@ -5,8 +5,8 @@ export interface PortfolioItem {
   description: string;
 }
 
-// 案名與業主是否公開呈現尚待確認（匿名化處理方式待決定），
-// 目前先以真實案件佔位，正式上線前需覆核。
+// 決定不做匿名化，直接使用真實案名與業主。
+// 上線前仍需逐一與業主確認是否同意公開列名。
 export const portfolio: PortfolioItem[] = [
   {
     id: "f12p7",
