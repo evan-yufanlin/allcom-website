@@ -22,8 +22,10 @@ export default function Nav() {
           <Logo className="h-7 w-11" />
           <span className="inline-grid leading-tight">
             <span className="whitespace-nowrap font-extrabold text-[1.02rem]">汎德</span>
-            <span className="block text-justify font-mono text-[0.6rem] font-medium text-muted [text-align-last:justify]">
-              A L L C O M
+            <span className="flex justify-between font-mono text-[0.6rem] font-medium text-muted">
+              {"ALLCOM".split("").map((ch, i) => (
+                <span key={i}>{ch}</span>
+              ))}
             </span>
           </span>
         </Link>
