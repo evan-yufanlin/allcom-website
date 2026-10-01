@@ -155,6 +155,15 @@ export default function HomePage() {
                   {n.category}
                 </span>
                 <span className="text-[0.9rem] font-semibold leading-relaxed">{n.title}</span>
+                {n.attachment && (
+                  <a
+                    href={n.attachment.href}
+                    download
+                    className="mt-0.5 inline-flex w-fit items-center gap-1.5 border border-line px-2.5 py-1 font-mono text-[0.7rem] text-accent hover:border-accent"
+                  >
+                    ↓ {n.attachment.label}
+                  </a>
+                )}
               </div>
             </div>
           ))}
