@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <style>
+    .r{stroke:#DC2626;}
+    .s{stroke:#14141F;}
+    .t{stroke:#4338CA;}
+    @media (prefers-color-scheme: dark){
+      .r{stroke:#F87171;}
+      .s{stroke:#ECEDF5;}
+      .t{stroke:#9490FF;}
+    }
+  </style>
+  <path class="r" d="M 20.81,35.32 A 30,30 0 0 1 75.19,35.32" fill="none" stroke-width="11" stroke-linecap="round"/>
+  <path class="s" d="M 72.57,30.79 A 30,30 0 0 1 45.39,77.89" fill="none" stroke-width="11" stroke-linecap="round"/>
+  <path class="t" d="M 50.61,77.89 A 30,30 0 0 1 23.43,30.79" fill="none" stroke-width="11" stroke-linecap="round"/>
+</svg>
