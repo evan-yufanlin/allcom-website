@@ -20,10 +20,10 @@ export default function Nav() {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo className="h-7 w-11" />
-          <span className="flex flex-col leading-tight">
-            <span className="font-extrabold text-[1.02rem]">汎德</span>
-            <span className="font-mono text-[0.6rem] font-medium tracking-[0.16em] text-muted">
-              ALLCOM
+          <span className="inline-grid leading-tight">
+            <span className="whitespace-nowrap font-extrabold text-[1.02rem]">汎德</span>
+            <span className="block text-justify font-mono text-[0.6rem] font-medium text-muted [text-align-last:justify]">
+              A L L C O M
             </span>
           </span>
         </Link>
