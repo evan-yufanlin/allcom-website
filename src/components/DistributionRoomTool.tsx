@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import PdfSaveButton from "@/components/PdfSaveButton";
+import { dateStamp } from "@/lib/dateStamp";
 import {
   ASSUMPTIONS,
   DISCLAIMER,
@@ -8,15 +10,8 @@ import {
   REFERENCES,
   reviewDistributionRoom,
   type CalcStep,
-  type DistributionRoomResult,
   type SpecItem,
 } from "@/lib/distributionRoom";
-
-function dateStamp(d: Date, sep: string) {
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return [d.getFullYear(), mm, dd].join(sep);
-}
 
 function parsePositive(raw: string) {
   if (raw.trim() === "") return null;
@@ -129,12 +124,24 @@ export default function DistributionRoomTool() {
             {DISCLAIMER}
           </p>
 
-          <PdfDownload
-            floorArea={review.area}
-            parkingSpaces={review.spaces}
-            result={review.result}
-            generatedOn={dateStamp(today, "/")}
+          <PdfSaveButton
             fileName={fileName}
+            build={async () => {
+              const [{ pdf }, { default: DistributionRoomPdf }, { registerPdfFonts }] = await Promise.all([
+                import("@react-pdf/renderer"),
+                import("@/components/DistributionRoomPdf"),
+                import("@/components/pdfCommon"),
+              ]);
+              registerPdfFonts(window.location.origin);
+              return pdf(
+                <DistributionRoomPdf
+                  floorArea={review.area}
+                  parkingSpaces={review.spaces}
+                  result={review.result}
+                  generatedOn={dateStamp(today, "/")}
+                />,
+              ).toBlob();
+            }}
           />
         </>
       ) : (
@@ -224,104 +231,5 @@ function SpecTable({ title, items }: { title: string; items: SpecItem[] }) {
         ))}
       </div>
     </section>
-  );
-}
-
-type SaveFilePicker = (options: {
-  suggestedName?: string;
-  types?: { description: string; accept: Record<string, string[]> }[];
-}) => Promise<FileSystemFileHandle>;
-
-function PdfDownload({
-  floorArea,
-  parkingSpaces,
-  result,
-  generatedOn,
-  fileName,
-}: {
-  floorArea: number;
-  parkingSpaces: number;
-  result: DistributionRoomResult;
-  generatedOn: string;
-  fileName: string;
-}) {
-  const [state, setState] = useState<"idle" | "working" | "done" | "error">("idle");
-  const [savedAs, setSavedAs] = useState("");
-
-  async function download() {
-    const name = `${fileName}.pdf`;
-
-    // 存檔視窗必須在點擊當下開啟（瀏覽器限制），所以先選位置，再產生 PDF。
-    // 不支援的瀏覽器（Safari、Firefox、手機）改用一般下載，存成預設檔名。
-    let handle: FileSystemFileHandle | null = null;
-    const picker = (window as Window & { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
-    if (picker) {
-      try {
-        handle = await picker({
-          suggestedName: name,
-          types: [{ description: "PDF 文件", accept: { "application/pdf": [".pdf"] } }],
-        });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-      }
-    }
-
-    setState("working");
-    // 先讓「產生中」顯示出來，再進行耗時的排版
-    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
-    try {
-      const [{ pdf }, { default: DistributionRoomPdf, registerPdfFonts }] = await Promise.all([
-        import("@react-pdf/renderer"),
-        import("@/components/DistributionRoomPdf"),
-      ]);
-      registerPdfFonts(window.location.origin);
-      const blob = await pdf(
-        <DistributionRoomPdf
-          floorArea={floorArea}
-          parkingSpaces={parkingSpaces}
-          result={result}
-          generatedOn={generatedOn}
-        />,
-      ).toBlob();
-
-      if (handle) {
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-        setSavedAs(handle.name);
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10_000);
-        setSavedAs(name);
-      }
-      setState("done");
-    } catch (e) {
-      console.error(e);
-      setState("error");
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-2.5">
-      <button
-        type="button"
-        onClick={download}
-        disabled={state === "working"}
-        className="self-start rounded-[2px] bg-accent px-5 py-2.75 text-[0.85rem] font-bold text-white disabled:opacity-60"
-      >
-        {state === "working" ? "PDF 產生中…" : "下載檢討結果 PDF"}
-      </button>
-      {state !== "done" && <span className="text-[0.72rem] text-muted">預設檔名：{fileName}.pdf</span>}
-      {state === "done" && <span className="text-[0.75rem] text-muted">已儲存：{savedAs}</span>}
-      {state === "error" && (
-        <span className="text-[0.75rem] text-[var(--phase-r)]">PDF 產生失敗，請重新整理頁面後再試一次。</span>
-      )}
-    </div>
   );
 }

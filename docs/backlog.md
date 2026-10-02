@@ -27,11 +27,14 @@
 
 ## 後續規劃
 
-- 即時規劃：電信室面積、給水水理計算、空調風管/水管計算。
+- 即時規劃：電信室面積、空調風管/水管計算。
+- 給水水理計算第二版：揚水泵浦、北水 50 mm 以上摩擦水頭校核、給水主管口徑（見 docs/water-supply-spec.md 第 11 節）。
 - 第二期：CMS 後台（行政同事自行發布消息）。
 - 第三期：建築師會員系統（分級權限、機電空間規劃建議）。
 
 ## 維護備忘
+
+- 給水水理計算規則或參數修改後，執行 `npm run verify:water` 核對規格文件第 9 節之案例。
 
 - 新增附公文的消息：原始 PDF 放 `public/documents/<slug>.pdf`，逐頁轉 JPG（150 dpi）放 `public/news/<slug>/p1.jpg…`，
   再於 `src/data/news.ts` 新增一筆（`slug`、`points` 重點整理、`pages`、`attachment`），即自動產生內頁 `/news/<slug>`。

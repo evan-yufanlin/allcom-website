@@ -9,7 +9,7 @@ const links = [
   { href: "/portfolio", label: "實績案例" },
   { href: "/about", label: "關於我們" },
   { href: "/news", label: "最新消息" },
-  { href: "/tools/distribution-room", label: "即時規劃", highlight: true },
+  { href: "/tools", label: "即時規劃", highlight: true },
   { href: "/contact", label: "聯絡我們" },
 ];
 

@@ -68,7 +68,7 @@ export interface ProjectInput {
   plan: {
     /** 未達 300 m³/日 時手動啟用 3 日檢核 */
     manual: boolean;
-    /** 計畫用水量（m³/日）；null 時以 ⌈V⌉ 推估 */
+    /** 計畫用水量（m³/日）；null 時以 V 無條件進位推估 */
     planned: number | null;
     /** 分期開發前期已核定之計畫用水量 */
     prior: number;
@@ -93,6 +93,8 @@ export interface Check {
   actual: string;
   /** null：僅提示，不判定 */
   ok: boolean | null;
+  /** 未通過時的標示，預設「不足」 */
+  failLabel?: string;
   note?: string;
   cite: string;
 }
@@ -306,6 +308,7 @@ function calcSystem(p: ProjectInput, sys: SystemInput): SystemResult {
       requirement: `VG ＋ VT ≤ 2 日設計用水量 ＝ ${fmt(2 * vd)} m³`,
       actual: `${fmt(vg + vt)} m³`,
       ok: vg + vt <= 2 * vd + 1e-9,
+      failLabel: "超過",
       note: "考慮用水安全，以不超過二日設計用水量為原則",
       cite: j === "taiwan" ? std6 : tp,
     });
@@ -434,7 +437,7 @@ function calcPlan(p: ProjectInput, systems: SystemResult[], meter: MeterResult):
   const ok = storage >= needed - 1e-9;
 
   const lines = [
-    `計畫用水量 ＝ ${p.plan.planned === null ? `⌈V⌉ ＝ ⌈${fmt(v)}⌉` : "使用者輸入"} ＝ ${planned} m³/日${
+    `計畫用水量 ＝ ${p.plan.planned === null ? `V ${fmt(v)} 無條件進位` : "使用者輸入"} ＝ ${planned} m³/日${
       p.plan.prior ? `；含前期已核定 ${fmt(p.plan.prior)}，累計 ${fmt(total)} m³/日` : ""
     }`,
     required

@@ -8,14 +8,39 @@ import path from "node:path";
 const TEXT_SOURCES = [
   "src/lib/distributionRoom.ts",
   "src/components/DistributionRoomPdf.tsx",
+  "src/components/pdfCommon.tsx",
+  "src/lib/waterSupply.ts",
+  "src/lib/waterSupplyData.ts",
+  "src/components/WaterSupplyPdf.tsx",
   "src/data/contact.ts",
 ];
 const OUT_DIR = "public/fonts";
 const CHARS_FILE = path.join(OUT_DIR, "pdf-font-chars.txt");
+// 標準字重另含 Big5 常用字（使用者輸入的工程名稱、系統名稱等以標準字重呈現）；粗體只含固定文字。
 const FONTS = [
-  { src: "NotoSansTC_400Regular.ttf", out: "NotoSansTC-Regular-pdf.ttf" },
-  { src: "NotoSansTC_700Bold.ttf", out: "NotoSansTC-Bold-pdf.ttf" },
+  { src: "NotoSansTC_400Regular.ttf", out: "NotoSansTC-Regular-pdf.ttf", common: true },
+  { src: "NotoSansTC_700Bold.ttf", out: "NotoSansTC-Bold-pdf.ttf", common: false },
 ];
+
+/** Big5 常用字（A440–C67E）與全形符號（A140–A3BF）。 */
+function commonChars() {
+  const decoder = new TextDecoder("big5");
+  const out = new Set();
+  const ranges = [
+    [0xa1, 0xa3],
+    [0xa4, 0xc6],
+  ];
+  for (const [hiStart, hiEnd] of ranges) {
+    for (let hi = hiStart; hi <= hiEnd; hi++) {
+      for (const lo of [...Array(0x3f).keys()].map((i) => 0x40 + i).concat([...Array(0x5e).keys()].map((i) => 0xa1 + i))) {
+        if (hi === 0xc6 && lo > 0x7e) continue;
+        const c = decoder.decode(new Uint8Array([hi, lo]));
+        if (c && c !== "\ufffd") out.add(c);
+      }
+    }
+  }
+  return out;
+}
 
 function requiredChars() {
   const set = new Set();
@@ -36,14 +61,20 @@ async function subset(srcDir) {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
   for (const f of FONTS) {
-    const out = await subsetFont(fs.readFileSync(path.join(srcDir, f.src)), text, {
-      targetFormat: "truetype",
-    });
+    const source = fs.readFileSync(path.join(srcDir, f.src));
+    let chars = text;
+    if (f.common) {
+      // 常用字中原始字型沒有的字略過；固定文字則必須全部具備
+      const srcFont = fontkit.create(source);
+      const extra = [...commonChars()].filter((c) => !text.includes(c) && srcFont.hasGlyphForCodePoint(c.codePointAt(0)));
+      chars = text + extra.join("");
+    }
+    const out = await subsetFont(source, chars, { targetFormat: "truetype" });
     fs.writeFileSync(path.join(OUT_DIR, f.out), out);
     const font = fontkit.create(out);
     const missing = [...text].filter((ch) => !font.hasGlyphForCodePoint(ch.codePointAt(0)));
     if (missing.length) throw new Error(`${f.out} 原始字型缺字：${missing.join(" ")}`);
-    console.log(`${f.out}: ${(out.length / 1024).toFixed(1)} KB, ${[...text].length} 字`);
+    console.log(`${f.out}: ${(out.length / 1024).toFixed(1)} KB, ${[...chars].length} 字`);
   }
   fs.writeFileSync(CHARS_FILE, text);
 }

@@ -10,7 +10,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/about",
     "/portfolio",
     "/news",
+    "/tools",
     "/tools/distribution-room",
+    "/tools/water-supply",
     "/contact",
     ...newsWithPage.map((n) => `/news/${n.slug}`),
   ];
