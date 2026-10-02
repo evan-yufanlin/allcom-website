@@ -312,6 +312,7 @@ export default function WaterSupplyTool() {
           key={active.id}
           j={j}
           sys={active}
+          showCapacityDocs={j === "taipei" || baselineDays !== null}
           update={(patch) => updateSystem(active.id, patch)}
           remove={
             systems.length > 1
@@ -391,11 +392,13 @@ export default function WaterSupplyTool() {
 function SystemEditor({
   j,
   sys,
+  showCapacityDocs,
   update,
   remove,
 }: {
   j: Jurisdiction;
   sys: SystemUI;
+  showCapacityDocs: boolean;
   update: (patch: Partial<SystemUI> | ((s: SystemUI) => Partial<SystemUI>)) => void;
   remove?: () => void;
 }) {
@@ -605,6 +608,7 @@ function SystemEditor({
             ＋ 水塔
           </SmallButton>
         </div>
+        {showCapacityDocs && <CapacityDocs j={j} />}
       </Group>
     </div>
   );
