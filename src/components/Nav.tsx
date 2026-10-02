@@ -9,7 +9,7 @@ const links = [
   { href: "/portfolio", label: "實績案例" },
   { href: "/about", label: "關於我們" },
   { href: "/news", label: "最新消息" },
-  { href: "/tools/distribution-room", label: "線上檢討" },
+  { href: "/tools/distribution-room", label: "即時規劃", highlight: true },
   { href: "/contact", label: "聯絡我們" },
 ];
 
@@ -33,7 +33,11 @@ export default function Nav() {
 
         <nav className="hidden gap-6 text-sm text-muted md:flex">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-accent">
+            <Link
+              key={l.href}
+              href={l.href}
+              className={l.highlight ? "font-semibold text-accent hover:opacity-80" : "hover:text-accent"}
+            >
               {l.label}
             </Link>
           ))}
@@ -58,7 +62,9 @@ export default function Nav() {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="border-b border-line py-3 text-foreground last:border-none"
+              className={`border-b border-line py-3 last:border-none ${
+                l.highlight ? "font-semibold text-accent" : "text-foreground"
+              }`}
             >
               {l.label}
             </Link>
