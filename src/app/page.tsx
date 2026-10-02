@@ -34,9 +34,6 @@ export default function HomePage() {
           <p className="max-w-[36ch] text-[0.98rem] leading-[1.75] text-muted">
             專注電機、空調系統規劃設計與監造，服務涵蓋廠辦、公共工程與住宅開發。
           </p>
-          <p className="pt-1.5 text-[0.78rem] text-muted">
-            主持技師 <b className="font-bold text-foreground">林毓凡</b>　電機技師・冷凍空調技師
-          </p>
           <div className="flex flex-wrap gap-2.5 pt-1.5">
             <Link
               href="/portfolio"
@@ -63,6 +60,55 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* News preview */}
+      <section className="border-b border-line px-5 py-13">
+        <SectionHead eyebrow="News" title="最新消息" description="產業法規異動與技術動態。" />
+        <div className="mx-auto flex max-w-2xl flex-col">
+          {news.slice(0, 3).map((n, i) => (
+            <div
+              key={n.title}
+              className={`flex gap-4 py-3.5 ${i === 0 ? "border-t border-line" : ""} border-b border-line`}
+            >
+              <span className="w-18 shrink-0 font-mono text-[0.72rem] text-muted">{n.date}</span>
+              <div className="flex flex-col gap-1.25">
+                <span
+                  className={`self-start px-2 py-0.5 font-mono text-[0.62rem] ${
+                    n.category === "公司動態"
+                      ? "border border-line text-muted"
+                      : "bg-accent-soft text-accent"
+                  }`}
+                >
+                  {n.category}
+                </span>
+                {n.slug ? (
+                  <Link
+                    href={`/news/${n.slug}`}
+                    className="text-[0.9rem] font-semibold leading-relaxed hover:text-accent"
+                  >
+                    {n.title} →
+                  </Link>
+                ) : (
+                  <span className="text-[0.9rem] font-semibold leading-relaxed">{n.title}</span>
+                )}
+                {n.attachment && (
+                  <a
+                    href={n.attachment.href}
+                    download={n.attachment.fileName ?? true}
+                    className="mt-0.5 inline-flex w-fit items-center gap-1.5 border border-line px-2.5 py-1 font-mono text-[0.7rem] text-accent hover:border-accent"
+                  >
+                    ↓ {n.attachment.label}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mx-auto mt-5 max-w-2xl text-right">
+          <Link href="/news" className="text-[0.82rem] font-semibold text-accent hover:underline">
+            查看所有消息 →
+          </Link>
+        </div>
+      </section>
       {/* Values */}
       <section className="border-b border-line px-5 py-10">
         <ValuesBand />
@@ -111,7 +157,7 @@ export default function HomePage() {
       </section>
 
       {/* Portfolio highlights */}
-      <section className="border-b border-line px-5 py-13">
+      <section className="px-5 py-13">
         <SectionHead eyebrow="Portfolio" title="精選實績" description="近期案件節錄，完整案例請見實績頁。" />
         <div className="mx-auto grid max-w-2xl grid-cols-1 gap-3.5 sm:grid-cols-2">
           {portfolio.slice(0, 2).map((p) => (
@@ -134,55 +180,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* News preview */}
-      <section className="px-5 py-13">
-        <SectionHead eyebrow="News" title="最新消息" description="產業法規異動與技術動態。" />
-        <div className="mx-auto flex max-w-2xl flex-col">
-          {news.map((n, i) => (
-            <div
-              key={n.title}
-              className={`flex gap-4 py-3.5 ${i === 0 ? "border-t border-line" : ""} border-b border-line`}
-            >
-              <span className="w-18 shrink-0 font-mono text-[0.72rem] text-muted">{n.date}</span>
-              <div className="flex flex-col gap-1.25">
-                <span
-                  className={`self-start px-2 py-0.5 font-mono text-[0.62rem] ${
-                    n.category === "公司動態"
-                      ? "border border-line text-muted"
-                      : "bg-accent-soft text-accent"
-                  }`}
-                >
-                  {n.category}
-                </span>
-                {n.slug ? (
-                  <Link
-                    href={`/news/${n.slug}`}
-                    className="text-[0.9rem] font-semibold leading-relaxed hover:text-accent"
-                  >
-                    {n.title} →
-                  </Link>
-                ) : (
-                  <span className="text-[0.9rem] font-semibold leading-relaxed">{n.title}</span>
-                )}
-                {n.attachment && (
-                  <a
-                    href={n.attachment.href}
-                    download={n.attachment.fileName ?? true}
-                    className="mt-0.5 inline-flex w-fit items-center gap-1.5 border border-line px-2.5 py-1 font-mono text-[0.7rem] text-accent hover:border-accent"
-                  >
-                    ↓ {n.attachment.label}
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mx-auto mt-5 max-w-2xl text-right">
-          <Link href="/news" className="text-[0.82rem] font-semibold text-accent hover:underline">
-            查看所有消息 →
-          </Link>
-        </div>
-      </section>
     </>
   );
 }
