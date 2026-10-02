@@ -23,7 +23,7 @@
 ## 待辦
 
 - 正式網域 allcom.com.tw 的 DNS 指向 Vercel。
-- 刪除已合併的 `feature/distribution-room-tool` 分支（待確認）。
+- 從 GitHub 網頁刪除已合併的 `feature/distribution-room-tool` 分支（雲端開發環境無法刪除遠端分支；本地分支已刪）。
 
 ## 後續規劃
 
