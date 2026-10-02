@@ -755,7 +755,7 @@ function Results({
           ) : (
             <p className="text-[0.75rem] text-muted">未輸入蓄水池、水塔尺寸，略過容量檢核。</p>
           )}
-          {j === "taiwan" && result.input.baselineDays !== null && <BaselineDocs />}
+          {(j === "taipei" || result.input.baselineDays !== null) && <CapacityDocs j={j} />}
         </section>
       ))}
 
@@ -826,27 +826,34 @@ export function references(r: WaterSupplyResult) {
   return list;
 }
 
-const BASELINE_DOCS = [
-  {
-    href: "/documents/taiwan-water-storage-baseline-111.pdf",
-    label: "住宅類蓄水池及水塔合計容量基準值（111年10月26日修正，現行版，4 頁）",
-  },
-  {
-    href: "/documents/taiwan-water-storage-baseline-110-letter.pdf",
-    label: "台水110年9月17日台水營字第1100029805號函（含公告、全文、修正總說明及對照表，8 頁）",
-  },
-];
+const CAPACITY_DOCS: Record<Jurisdiction, { href: string; label: string }[]> = {
+  taiwan: [
+    {
+      href: "/documents/taiwan-water-storage-baseline-111.pdf",
+      label: "台水住宅類蓄水池及水塔合計容量基準值（111年10月26日修正）",
+    },
+  ],
+  taipei: [
+    {
+      href: "/documents/taipei-water-ch2-tank-excerpt.pdf",
+      label: "北水規範 2-4 水箱容量規定（第二章節錄，第 17～18 頁）",
+    },
+    {
+      href: "/documents/taipei-water-ch2.pdf",
+      label: "北水規範第二章 用戶用水設備內線工程圖設計（114年1月修編，全文）",
+    },
+  ],
+};
 
-function BaselineDocs() {
+function CapacityDocs({ j }: { j: Jurisdiction }) {
   return (
     <div className="flex flex-col gap-1 text-[0.75rem] leading-relaxed">
-      <span className="text-muted">原始公文：</span>
-      {BASELINE_DOCS.map((d) => (
+      <span className="text-muted">容量基準原始文件：</span>
+      {CAPACITY_DOCS[j].map((d) => (
         <a key={d.href} href={d.href} target="_blank" rel="noopener" className="text-accent hover:underline">
           {d.label}（PDF）↗
         </a>
       ))}
-      <span className="text-[0.7rem] text-muted">110年版之後已於111年10月26日修正第二點（新增彰化縣部分地區），計算依現行版。</span>
     </div>
   );
 }
