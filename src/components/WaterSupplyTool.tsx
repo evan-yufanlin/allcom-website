@@ -20,6 +20,7 @@ import {
   type Tank,
   type WaterSupplyResult,
 } from "@/lib/waterSupply";
+import { AREA_TABLE, AREA_TABLE_IMAGES } from "@/lib/waterSupplyAreaTable";
 import {
   AREA_USES,
   COUNTIES,
@@ -508,8 +509,9 @@ function SystemEditor({
         <div className="flex flex-wrap gap-2">
           <SmallButton onClick={() => update((s) => ({ rows: [...s.rows, areaRowUI(j)] }))}>＋ 面積推算</SmallButton>
           {j === "taipei" && <SmallButton onClick={() => update((s) => ({ rows: [...s.rows, fixtureRowUI()] }))}>＋ 衛生器具</SmallButton>}
-          <SmallButton onClick={() => update((s) => ({ rows: [...s.rows, peopleRowUI(s.tongluo)] }))}>＋ 人數（科學園區建議值）</SmallButton>
+          <SmallButton onClick={() => update((s) => ({ rows: [...s.rows, peopleRowUI(s.tongluo)] }))}>＋ 人數（員工、床數、客席等）</SmallButton>
         </div>
+        <AreaReference j={j} />
         {hasPeople && (
           <CheckBox
             checked={sys.tongluo}
@@ -604,6 +606,69 @@ function SystemEditor({
           </SmallButton>
         </div>
       </Group>
+    </div>
+  );
+}
+
+function AreaReference({ j }: { j: Jurisdiction }) {
+  const [open, setOpen] = useState(false);
+  const images = j === "taiwan" ? [AREA_TABLE_IMAGES.taiwan, AREA_TABLE_IMAGES.taipei] : [AREA_TABLE_IMAGES.taipei, AREA_TABLE_IMAGES.taiwan];
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="self-start text-[0.75rem] text-accent hover:underline"
+      >
+        {open ? "▾" : "▸"} 查看各種建築物面積推算法用水量對照表（{AREA_TABLE.length} 種用途）
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2.5 border border-line bg-background p-3">
+          <p className="text-[0.72rem] leading-relaxed text-muted">
+            審查計算表未列之用途，可參考本表選「其他（自訂）」自行填入參數。人員以病床、客席、客數等計者，請改用「人數」列輸入床數或客席數。空白欄位為表列未訂。
+          </p>
+          {j === "taiwan" && (
+            <p className="border-l-2 border-[var(--phase-r)] pl-2.5 text-[0.72rem] leading-relaxed">
+              台水附件十一之一之數值與北水表2-9 相同，但原表用途名稱與數值自「寺院・教會」起未對齊，且未列「停車場、車站」之名稱（最末列標為「工廠」者實為停車場之數值），有錯位疑慮；本表依北水表2-9 對位。另台水附註：總面積為各層樓地板面積總和，無自來水用水設備之地下層及屋突層面積得扣除。
+            </p>
+          )}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[40rem] border-collapse text-[0.72rem] leading-snug">
+              <thead>
+                <tr className="bg-accent-soft text-left">
+                  {["建築物用途", "一日平均使用水量（ℓ）", "一日平均使用時間", "使用者", "有效面積相當人員", "有效面積／總面積（%）"].map((h) => (
+                    <th key={h} className="border border-line px-2 py-1.5 font-bold">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {AREA_TABLE.map((r) => (
+                  <tr key={r.use}>
+                    <td className="border border-line px-2 py-1 font-bold whitespace-nowrap">{r.use}</td>
+                    <td className="border border-line px-2 py-1 font-mono">{r.litres}</td>
+                    <td className="border border-line px-2 py-1 font-mono">{r.hours}</td>
+                    <td className="border border-line px-2 py-1">{r.user}</td>
+                    <td className="border border-line px-2 py-1 font-mono">{r.density}</td>
+                    <td className="border border-line px-2 py-1 font-mono">{r.ratio}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.75rem]">
+            <span className="text-muted">原始表格：</span>
+            {images.map((img) => (
+              <a key={img.src} href={img.src} target="_blank" rel="noopener" className="text-accent hover:underline">
+                {img.label}（JPG）↗
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
