@@ -755,6 +755,7 @@ function Results({
           ) : (
             <p className="text-[0.75rem] text-muted">未輸入蓄水池、水塔尺寸，略過容量檢核。</p>
           )}
+          {j === "taiwan" && result.input.baselineDays !== null && <BaselineDocs />}
         </section>
       ))}
 
@@ -823,6 +824,31 @@ export function references(r: WaterSupplyResult) {
   if (r.plan.active) list.push(`${SOURCES.planRules}：第3條、第5條`, `${SOURCES.planFormat}：五、缺水應變措施`);
   if (r.input.systems.some((s) => s.rows.some((x) => x.kind === "people"))) list.push(`${SOURCES.parkGuide}：民生用水建議值`);
   return list;
+}
+
+const BASELINE_DOCS = [
+  {
+    href: "/documents/taiwan-water-storage-baseline-111.pdf",
+    label: "住宅類蓄水池及水塔合計容量基準值（111年10月26日修正，現行版，4 頁）",
+  },
+  {
+    href: "/documents/taiwan-water-storage-baseline-110-letter.pdf",
+    label: "台水110年9月17日台水營字第1100029805號函（含公告、全文、修正總說明及對照表，8 頁）",
+  },
+];
+
+function BaselineDocs() {
+  return (
+    <div className="flex flex-col gap-1 text-[0.75rem] leading-relaxed">
+      <span className="text-muted">原始公文：</span>
+      {BASELINE_DOCS.map((d) => (
+        <a key={d.href} href={d.href} target="_blank" rel="noopener" className="text-accent hover:underline">
+          {d.label}（PDF）↗
+        </a>
+      ))}
+      <span className="text-[0.7rem] text-muted">110年版之後已於111年10月26日修正第二點（新增彰化縣部分地區），計算依現行版。</span>
+    </div>
+  );
 }
 
 function Metric({ label, value, unit, strong }: { label: string; value: string; unit: string; strong?: boolean }) {
