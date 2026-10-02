@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { news } from "@/data/news";
 
 export const metadata: Metadata = {
@@ -36,14 +37,23 @@ export default function NewsPage() {
                 >
                   {n.category}
                 </span>
-                <span className="text-[0.92rem] font-semibold leading-relaxed">{n.title}</span>
+                {n.slug ? (
+                  <Link
+                    href={`/news/${n.slug}`}
+                    className="text-[0.92rem] font-semibold leading-relaxed hover:text-accent"
+                  >
+                    {n.title} →
+                  </Link>
+                ) : (
+                  <span className="text-[0.92rem] font-semibold leading-relaxed">{n.title}</span>
+                )}
                 {n.summary && (
                   <p className="text-[0.82rem] leading-relaxed text-muted">{n.summary}</p>
                 )}
                 {n.attachment && (
                   <a
                     href={n.attachment.href}
-                    download
+                    download={n.attachment.fileName ?? true}
                     className="mt-0.5 inline-flex w-fit items-center gap-1.5 border border-line px-2.5 py-1 font-mono text-[0.7rem] text-accent hover:border-accent"
                   >
                     ↓ {n.attachment.label}

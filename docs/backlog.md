@@ -33,6 +33,9 @@
 
 ## 維護備忘
 
+- 新增附公文的消息：原始 PDF 放 `public/documents/<slug>.pdf`，逐頁轉 JPG（150 dpi）放 `public/news/<slug>/p1.jpg…`，
+  再於 `src/data/news.ts` 新增一筆（`slug`、`points` 重點整理、`pages`、`attachment`），即自動產生內頁 `/news/<slug>`。
+
 - 修改 `src/lib/distributionRoom.ts`、`src/components/DistributionRoomPdf.tsx`、`src/data/contact.ts` 的文字後，
   需執行 `npm run pdf-font:subset -- <原始字型資料夾>` 重新產生 PDF 子集字型；建置前會自動檢查缺字。
   原始字型可由 npm 套件 `@expo-google-fonts/noto-sans-tc` 取得（`400Regular`、`700Bold`）。

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { newsWithPage } from "@/data/news";
 
 const siteUrl = "https://www.allcom.com.tw";
 
@@ -11,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/news",
     "/tools/distribution-room",
     "/contact",
+    ...newsWithPage.map((n) => `/news/${n.slug}`),
   ];
   return routes.map((route) => ({
     url: `${siteUrl}${route}`,
