@@ -177,6 +177,15 @@ export default function WaterSupplyTool() {
     plan,
   };
   const result = calculateWaterSupply(input);
+  // 另一轄區以相同輸入估算，供容量上下限對照（每人用水量、安全係數依該轄區）
+  const altJ: Jurisdiction = j === "taiwan" ? "taipei" : "taiwan";
+  const alt = calculateWaterSupply({
+    ...input,
+    jurisdiction: altJ,
+    baselineDays: altJ === "taiwan" ? 1 : null,
+    baselineLabel: "一般供水區",
+    legacyUrbanRenewal: false,
+  });
 
   const hasDemand = result.meter.v > 0;
   const active = systems.find((s) => s.id === activeId) ?? systems[0];
@@ -374,6 +383,7 @@ export default function WaterSupplyTool() {
       {hasDemand ? (
         <Results
           result={result}
+          alt={alt}
           projectName={projectName}
           fileName={fileName}
           generatedOn={dateStamp(today, "/")}
@@ -718,11 +728,13 @@ function UnitInput({
 
 function Results({
   result,
+  alt,
   projectName,
   fileName,
   generatedOn,
 }: {
   result: WaterSupplyResult;
+  alt: WaterSupplyResult;
   projectName: string;
   fileName: string;
   generatedOn: string;
@@ -747,13 +759,14 @@ function Results({
         </div>
       </section>
 
-      {result.systems.map((s) => (
+      {result.systems.map((s, i) => (
         <section key={s.name} className="flex flex-col gap-3">
           <h2 className="text-[1.05rem] font-extrabold">{multi ? `系統：${s.name}` : "計算式"}</h2>
           {s.steps.map((st, i) => (
             <StepBox key={st.title} n={i + 1} step={st} />
           ))}
           <p className="-mt-1.5 text-[0.72rem] text-muted/60">{NEXT_VERSION_NOTE}</p>
+          <CapacityCompare cur={result} alt={alt} index={i} />
           {!s.hasTanks && (
             <p className="text-[0.75rem] text-muted">尚未輸入蓄水池、水塔尺寸，以下列出容量需求；輸入尺寸後即自動判定。</p>
           )}
@@ -857,6 +870,80 @@ function CapacityDocs({ j }: { j: Jurisdiction }) {
           {d.label}（PDF）↗
         </a>
       ))}
+    </div>
+  );
+}
+
+/** 北水、台水容量上下限對照；本案適用之轄區框選。 */
+function CapacityCompare({ cur, alt, index }: { cur: WaterSupplyResult; alt: WaterSupplyResult; index: number }) {
+  const byJ = (j: Jurisdiction) => (cur.input.jurisdiction === j ? cur : alt);
+  const cols = (["taipei", "taiwan"] as const).map((j) => {
+    const r = byJ(j);
+    const vd = r.systems[index].vd;
+    const legacy = r.input.legacyUrbanRenewal;
+    const days = r.input.baselineDays;
+    return {
+      j,
+      active: cur.input.jurisdiction === j,
+      cells: [
+        `${fmt(vd)} m³`,
+        `VG ≥ ${fmt(0.2 * vd)} m³`,
+        j === "taipei" ? `VT ≥ ${fmt(0.1 * vd)} m³` : "（無規定）",
+        j === "taipei" && !legacy ? `VG＋VT ≥ ${fmt(vd)} m³（1 日）` : `VG＋VT ≥ ${fmt(0.4 * vd)} m³（0.4 Vd）`,
+        `≤ ${fmt(2 * vd)} m³（2 日）`,
+        j === "taipei"
+          ? "—"
+          : days === null
+            ? "不檢核"
+            : `≥ ${fmt(days * vd)} m³（${r.input.baselineLabel === "一般供水區" ? "一般供水區 " : ""}${days} 日）`,
+      ],
+    };
+  });
+  const rows = ["一日設計用水量 Vd", "蓄水池容量", "水塔容量", "合計容量下限", "合計容量上限", "住宅類基準值"];
+  const cell = (active: boolean, last: boolean) =>
+    `px-2 py-2 align-top font-mono tabular-nums sm:px-3 ${active ? `border-x-2 border-accent bg-accent-soft/60 ${last ? "border-b-2" : ""}` : ""}`;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <h3 className="text-[0.85rem] font-bold">容量上下限對照（北水／台水）</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full table-fixed border-collapse text-[0.72rem] sm:text-[0.78rem]">
+          <colgroup>
+            <col className="w-[30%]" />
+            <col />
+            <col />
+          </colgroup>
+          <thead>
+            <tr className="text-left">
+              <th className="border-b border-line px-2 py-2 font-bold sm:px-3">項目</th>
+              {cols.map((c) => (
+                <th
+                  key={c.j}
+                  className={`px-2 py-2 font-bold sm:px-3 ${c.active ? "border-x-2 border-t-2 border-accent bg-accent-soft/60 text-accent" : "border-b border-line"}`}
+                >
+                  {c.j === "taipei" ? "北水" : "台水"}
+                  {c.active && <span className="ml-1.5 inline-block bg-accent px-1.5 py-0.5 text-[0.62rem] font-bold text-white">本案適用</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((label, ri) => (
+              <tr key={label}>
+                <td className="border-b border-line px-2 py-2 align-top font-bold sm:px-3">{label}</td>
+                {cols.map((c) => (
+                  <td key={c.j} className={`${cell(c.active, ri === rows.length - 1)} ${c.active ? "" : "border-b border-line text-muted"}`}>
+                    {c.cells[ri]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[0.7rem] leading-relaxed text-muted">
+        本案依所選縣市、行政區屬{JURISDICTION_NAME[cur.input.jurisdiction]}（框選欄）。另一轄區以相同輸入估算，每人用水量（北水 225 L、台水 250 L）與安全係數依各該轄區{cur.input.jurisdiction === "taipei" ? "；台水基準值以一般供水區 1 日計" : ""}。
+      </p>
     </div>
   );
 }
