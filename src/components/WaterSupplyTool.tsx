@@ -754,11 +754,10 @@ function Results({
             <StepBox key={st.title} n={i + 1} step={st} />
           ))}
           <p className="-mt-1.5 text-[0.72rem] text-muted/60">{NEXT_VERSION_NOTE}</p>
-          {s.checks.length > 0 ? (
-            <CheckTable checks={s.checks} />
-          ) : (
-            <p className="text-[0.75rem] text-muted">未輸入蓄水池、水塔尺寸，略過容量檢核。</p>
+          {!s.hasTanks && (
+            <p className="text-[0.75rem] text-muted">尚未輸入蓄水池、水塔尺寸，以下列出容量需求；輸入尺寸後即自動判定。</p>
           )}
+          <CheckTable checks={s.checks} />
           {(j === "taipei" || result.input.baselineDays !== null) && <CapacityDocs j={j} />}
         </section>
       ))}

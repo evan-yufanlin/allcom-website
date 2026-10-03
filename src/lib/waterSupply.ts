@@ -274,23 +274,26 @@ function calcSystem(p: ProjectInput, sys: SystemInput): SystemResult {
     });
   }
 
+  // 未輸入尺寸時仍列出容量需求，設計值顯示「未輸入」、不判定
   const checks: Check[] = [];
-  if (hasTanks) {
+  const shown = (v: number) => (hasTanks ? `${fmt(v)} m³` : "未輸入");
+  const judge = (pass: boolean) => (hasTanks ? pass : null);
+  {
     const std6 = `${SOURCES.standard} 第6條`;
     const tp = `${SOURCES.tpRules} 2-4`;
     checks.push({
       item: "蓄水池容量",
       requirement: `VG ≥ 0.2 Vd ＝ ${fmt(0.2 * vd)} m³`,
-      actual: `${fmt(vg)} m³`,
-      ok: vg >= 0.2 * vd - 1e-9,
+      actual: shown(vg),
+      ok: judge(vg >= 0.2 * vd - 1e-9),
       cite: j === "taiwan" ? `${std6}；${SOURCES.twForm}` : tp,
     });
     if (j === "taipei") {
       checks.push({
         item: "水塔容量",
         requirement: `VT ≥ 0.1 Vd ＝ ${fmt(0.1 * vd)} m³（避免揚水馬達啟動過於頻繁）`,
-        actual: `${fmt(vt)} m³`,
-        ok: vt >= 0.1 * vd - 1e-9,
+        actual: shown(vt),
+        ok: judge(vt >= 0.1 * vd - 1e-9),
         cite: tp,
       });
     }
@@ -298,16 +301,16 @@ function calcSystem(p: ProjectInput, sys: SystemInput): SystemResult {
     checks.push({
       item: "合計容量下限",
       requirement: `VG ＋ VT ≥ ${minRatio === 1 ? "1 日設計用水量 Vd" : "0.4 Vd"} ＝ ${fmt(minRatio * vd)} m³`,
-      actual: `${fmt(vg + vt)} m³`,
-      ok: vg + vt >= minRatio * vd - 1e-9,
+      actual: shown(vg + vt),
+      ok: judge(vg + vt >= minRatio * vd - 1e-9),
       note: j === "taipei" && p.legacyUrbanRenewal ? "105年12月15日前報核之都市更新案，依設備標準第6條辦理" : undefined,
       cite: j === "taiwan" ? `${std6}；${SOURCES.twForm}` : tp,
     });
     checks.push({
       item: "合計容量上限（原則）",
       requirement: `VG ＋ VT ≤ 2 日設計用水量 ＝ ${fmt(2 * vd)} m³`,
-      actual: `${fmt(vg + vt)} m³`,
-      ok: vg + vt <= 2 * vd + 1e-9,
+      actual: shown(vg + vt),
+      ok: judge(vg + vt <= 2 * vd + 1e-9),
       failLabel: "超過",
       note: "考慮用水安全，以不超過二日設計用水量為原則",
       cite: j === "taiwan" ? std6 : tp,
@@ -316,8 +319,8 @@ function calcSystem(p: ProjectInput, sys: SystemInput): SystemResult {
       checks.push({
         item: "住宅類蓄水量基準值",
         requirement: `VG ＋ VT ≥ ${p.baselineDays} 日 × Vd ＝ ${fmt(p.baselineDays * vd)} m³`,
-        actual: `${fmt(vg + vt)} m³`,
-        ok: vg + vt >= p.baselineDays * vd - 1e-9,
+        actual: shown(vg + vt),
+        ok: judge(vg + vt >= p.baselineDays * vd - 1e-9),
         note: p.baselineLabel,
         cite: SOURCES.twBaseline,
       });
