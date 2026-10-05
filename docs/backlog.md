@@ -43,6 +43,7 @@
 ## 維護備忘
 
 - 給水水理計算規則或參數修改後，執行 `npm run verify:water` 核對規格文件第 9 節之案例。
+- 避雷設備規則修改後，執行 `npm run verify:lightning` 核對條文邊界值。
 - 消防水池容量規則或參數修改後，執行 `npm run verify:fire` 核對 `docs/fire-water-spec.md` 第 5 節之案例。
 
 - 新增附公文的消息：原始 PDF 放 `public/documents/<slug>.pdf`，逐頁轉 JPG（150 dpi）放 `public/news/<slug>/p1.jpg…`，
