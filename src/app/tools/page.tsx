@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "即時規劃",
-  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、給水水理計算、消防水池容量等。",
+  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、避雷設備、給水水理計算、消防水池容量等。",
 };
 
 const tools = [
@@ -12,6 +12,12 @@ const tools = [
     title: "台電配電場所面積檢討",
     tag: "電機",
     summary: "輸入總樓地板面積與汽車停車位數，檢討低壓新設配電場所面積與規格需求。",
+  },
+  {
+    href: "/tools/lightning",
+    title: "避雷設備檢討",
+    tag: "電機",
+    summary: "依建築物高度與外周長，檢討應設與否、避雷導線斷面、引下導線條數及富蘭克林避雷針保護角。",
   },
   {
     href: "/tools/water-supply",
