@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "pdf-font:subset": "node scripts/pdf-font.mjs subset",
-    "verify:water": "node --experimental-strip-types --no-warnings scripts/verify-water.ts"
+    "verify:water": "node --experimental-strip-types --no-warnings scripts/verify-water.ts",
+    "verify:fire": "node --experimental-strip-types --no-warnings scripts/verify-fire.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

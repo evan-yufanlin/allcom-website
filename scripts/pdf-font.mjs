@@ -12,6 +12,8 @@ const TEXT_SOURCES = [
   "src/lib/waterSupply.ts",
   "src/lib/waterSupplyData.ts",
   "src/components/WaterSupplyPdf.tsx",
+  "src/lib/fireWater.ts",
+  "src/components/FireWaterPdf.tsx",
   "src/data/contact.ts",
 ];
 const OUT_DIR = "public/fonts";

@@ -13,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/tools",
     "/tools/distribution-room",
     "/tools/water-supply",
+    "/tools/fire-water",
     "/contact",
     ...newsWithPage.map((n) => `/news/${n.slug}`),
   ];
