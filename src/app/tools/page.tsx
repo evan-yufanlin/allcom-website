@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "即時規劃",
-  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、給水水理計算等。",
+  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、給水水理計算、消防水池容量等。",
 };
 
 const tools = [
@@ -18,6 +18,12 @@ const tools = [
     title: "給水水理計算",
     tag: "給排水",
     summary: "依台水、北水審查計算表，計算一日用水量、總表口徑、蓄水池與水塔容量及揚水管口徑。",
+  },
+  {
+    href: "/tools/fire-water",
+    title: "消防水池容量檢討",
+    tag: "消防",
+    summary: "勾選消防栓、撒水、泡沫及消防專用蓄水池，計算消防水池應設容量、屋頂水箱與實設有效水量。",
   },
 ];
 
@@ -46,7 +52,7 @@ const upcoming: { tag: string; items: { title: string; summary: string }[] }[] =
   {
     tag: "消防",
     items: [
-      { title: "消防水池與消防泵浦室", summary: "依消防栓、撒水、泡沫等水源量合計水池容量，並估算泵浦室尺寸。" },
+      { title: "消防泵浦室", summary: "依消防系統與幫浦台數估算泵浦室尺寸，鄰接消防水池。" },
       { title: "屋頂消防水箱與中繼設備", summary: "屋頂消防水箱容量；高層建築之中繼機房與中繼水箱。" },
       { title: "防災中心", summary: "高層建築物防災中心面積與防火時效。" },
     ],
