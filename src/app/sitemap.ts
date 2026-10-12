@@ -14,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/tools/distribution-room",
     "/tools/lightning",
     "/tools/transformers",
+    "/tools/substation",
     "/tools/water-supply",
     "/tools/fire-water",
     "/contact",
