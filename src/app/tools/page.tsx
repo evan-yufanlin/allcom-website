@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "即時規劃",
-  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、變壓器規格、避雷設備、給水水理計算、消防水池容量等。",
+  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、自設變電站、變壓器規格、避雷設備、給水水理計算、消防水池容量等。",
 };
 
 const tools = [
@@ -12,6 +12,12 @@ const tools = [
     title: "台電配電場所面積檢討",
     tag: "電機",
     summary: "輸入總樓地板面積與汽車停車位數，檢討低壓新設配電場所面積與規格需求。",
+  },
+  {
+    href: "/tools/substation",
+    title: "自設變電站空間檢討",
+    tag: "電機",
+    summary: "依配電盤、變壓器排列與通道條件，概估室內淨長、淨深與面積，並畫出平面示意圖。",
   },
   {
     href: "/tools/transformers",
@@ -45,7 +51,6 @@ const upcoming: { tag: string; items: { title: string; summary: string }[] }[] =
     tag: "電機",
     items: [
       { title: "受電箱、電錶箱", summary: "依用電戶數估算箱體組數與排列寬度，前方 1 m 通道。" },
-      { title: "自設電氣室", summary: "依受電方式與設備估算尺寸，鄰近台電配電場所。" },
       { title: "緊急發電機室", summary: "依發電機容量估算機房尺寸、進排氣百葉面積與防火門。" },
     ],
   },

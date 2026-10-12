@@ -16,6 +16,9 @@ const TEXT_SOURCES = [
   "src/components/FireWaterPdf.tsx",
   "src/lib/lightning.ts",
   "src/components/LightningPdf.tsx",
+  "src/lib/substation.ts",
+  "src/lib/substationDrawing.ts",
+  "src/components/SubstationPdf.tsx",
   "src/data/contact.ts",
 ];
 const OUT_DIR = "public/fonts";
