@@ -19,6 +19,9 @@ const TEXT_SOURCES = [
   "src/lib/substation.ts",
   "src/lib/substationDrawing.ts",
   "src/components/SubstationPdf.tsx",
+  "src/lib/telecom.ts",
+  "src/lib/telecomTables.ts",
+  "src/components/TelecomPdf.tsx",
   "src/data/contact.ts",
 ];
 const OUT_DIR = "public/fonts";
