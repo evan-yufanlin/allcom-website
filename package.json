@@ -13,7 +13,8 @@
     "verify:fire": "node --experimental-strip-types --no-warnings scripts/verify-fire.ts",
     "verify:lightning": "node --experimental-strip-types --no-warnings scripts/verify-lightning.ts",
     "verify:transformers": "node --experimental-strip-types --no-warnings scripts/verify-transformers.ts",
-    "verify:substation": "node --experimental-strip-types --no-warnings scripts/verify-substation.ts"
+    "verify:substation": "node --experimental-strip-types --no-warnings scripts/verify-substation.ts",
+    "verify:telecom": "node --experimental-strip-types --no-warnings scripts/verify-telecom.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
