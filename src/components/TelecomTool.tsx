@@ -8,6 +8,7 @@ import {
   BOX_MODE_NAME,
   DISCLAIMER,
   PIPE_REMINDERS,
+  RISER_REMINDERS,
   REMINDERS,
   USE_NAME,
   calculateTelecom,
@@ -27,6 +28,7 @@ import {
   MDF_TABLE,
   OLDF_TABLE,
   PIPE_TABLE,
+  RISER_TABLE,
   POWER_TABLE,
   ROOM_TABLE,
   RULE9,
@@ -189,6 +191,13 @@ export default function TelecomTool() {
               { value: "double", label: "雙側（MDF-6 以上）" },
             ]}
           />
+          {p.mode === "floors" && (
+            <div className="flex items-end pb-1.5 sm:col-span-2">
+              <CheckBox checked={p.riserUniform} onChange={(riserUniform) => set({ riserUniform })}>
+                垂直幹管（電信立管）統一採最大管徑（規範設計範例之做法）
+              </CheckBox>
+            </div>
+          )}
           <Num label="電信室規劃長度" unit="m" value={p.room.length} allowEmpty onChange={(length) => set({ room: { ...p.room, length } })} />
           <Num label="電信室規劃寬度" unit="m" value={p.room.width} allowEmpty onChange={(width) => set({ room: { ...p.room, width } })} />
         </div>
@@ -305,6 +314,49 @@ function Results({ r, projectName, fileName, generatedOn }: { r: TelecomResult; 
         </Section>
       )}
 
+      {r.riser && (
+        <Section title="垂直幹管（電信立管）" open>
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-[0.8rem] leading-relaxed">
+            {r.riser.lines.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+          <div className="overflow-x-auto">
+            <Grid
+              heads={["用途", "需求（每路由）", "管徑", "管數"]}
+              rows={r.riser.pipes.map((x) => [
+                x.role,
+                x.need,
+                x.mm === null ? <span key="t" className="text-[var(--phase-r)]">採用線架或線槽</span> : `${x.mm} mm`,
+                x.count || "—",
+              ])}
+            />
+          </div>
+          <p className="text-[0.8rem] font-bold">
+            每一路由 {r.riser.count} 管 × {r.riser.routes} 路由
+            {r.riser.dedicatedShaft && <span className="ml-1.5 text-[var(--phase-r)]">→ 應設電信專用管道間或於公共管道間預留電信專用位置</span>}
+          </p>
+          {r.riser.flags.map((x) => (
+            <p key={x} className="border-l-2 border-[var(--phase-r)] pl-2.5 text-[0.78rem]">
+              ⚠ {x}
+            </p>
+          ))}
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-[0.72rem] leading-relaxed text-muted">
+            {RISER_REMINDERS.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ul>
+          <RefToggle title="表 6-14 主幹線纜對數適用管徑參照表">
+            <Grid
+              heads={["線纜種類", "主幹線纜對數", "管徑 mm", "英制 inch"]}
+              rows={RISER_TABLE.map((x) => [x.kind, x.range, x.mm ?? "—", x.inch])}
+              mark={(k) => r.riser!.pipes.some((q) => q.mm !== null && q.mm === RISER_TABLE[k].mm && RISER_TABLE[k].range !== "同軸電纜" && (RISER_TABLE[k].kind === "光纜") === (q.role === "光纜"))}
+            />
+            <span className="text-[0.68rem] text-muted">主幹線纜對數 200 對以下者亦可採用線架或線槽；300 對以上者採用線架或線槽。</span>
+          </RefToggle>
+        </Section>
+      )}
+
       {r.mdf && (
         <Section title="總配線架（MDF）與光終端配線架（OLDF）" open>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -374,7 +426,7 @@ function Results({ r, projectName, fileName, generatedOn }: { r: TelecomResult; 
         <h2 className="text-[1.05rem] font-extrabold">引用法規</h2>
         <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[0.82rem] leading-relaxed">
           <li>{SOURCES.rules}：第 9 條、附件一</li>
-          <li>{SOURCES.spec}：6.3、6.4、6.6、8、12.3、13、15.1</li>
+          <li>{SOURCES.spec}：6.3、6.4、6.5、6.6、8、11.1、11.2、12.3、13、15.1</li>
         </ol>
       </section>
 

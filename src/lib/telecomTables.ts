@@ -55,6 +55,18 @@ export const PIPE_TABLE = [
   { kind: "光纜", range: "超過 96 心", mm: 52, inch: "2" },
 ];
 
+/** 表 6-14 主幹線纜對數適用管徑參照表 */
+export const RISER_TABLE = [
+  { kind: "電纜", range: "30 對以下", mm: 28 as number | null, inch: "1" },
+  { kind: "電纜", range: "100 對以下", mm: 41 as number | null, inch: "1½" },
+  { kind: "電纜", range: "200 對以下", mm: 52 as number | null, inch: "2" },
+  { kind: "電纜", range: "300 對以上", mm: null as number | null, inch: "採用線架或線槽" },
+  { kind: "電纜", range: "同軸電纜", mm: 41 as number | null, inch: "1½" },
+  { kind: "光纜", range: "24 心以下", mm: 28 as number | null, inch: "1" },
+  { kind: "光纜", range: "96 心以下", mm: 41 as number | null, inch: "1½" },
+  { kind: "光纜", range: "超過 96 心", mm: 52 as number | null, inch: "2" },
+];
+
 export interface BoxType {
   id: string;
   /** 內部尺寸 寬×高×深（cm） */
