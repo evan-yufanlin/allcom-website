@@ -114,6 +114,17 @@ console.log("\n範例六：5 層公有運動中心（單獨所有權，地下 1 
   eq("引進管", `${r.pipes.size}×${r.pipes.count}`, "52×8");
   eq("OLDF", r.oldf?.id, "OLDF-048");
   eq("MDF", r.mdf?.id, "MDF-2");
+  eq("垂直幹管：電話 128 對 → 52 mm", r.riser?.pipes.find((p) => p.role === "電話電纜")?.mm, 52);
+  eq("垂直幹管電話對數 ＝ Σ 各層配線對數（30×4＋4＋4）", r.riser?.phone, r.dist);
+  eq("垂直幹管：每路由 4 管（電話、光纜、同軸、預備）", r.riser?.count, 4);
+  const u = run({
+    above: 5,
+    below: 1,
+    singleOwner: true,
+    riserUniform: true,
+    rows: [row("1F～4F", 4, 4, 1, 900), row("5F", 1, 7, 1, 900), row("B1", 1, 7, 1, 900)],
+  });
+  eq("統一管徑：52 mm × 4 管（範例原文）", u.riser?.pipes.every((p) => p.mm === 52) && u.riser?.count === 4, true);
 }
 
 console.log("\n其他規則");
@@ -123,6 +134,9 @@ console.log("\n其他規則");
   eq("長寬檢核 2×3＝6 ＜ 7 m²", r.room.check?.ok, false);
   const s = run({ rows: [row("2F", 1, 2, 1, 2000)], above: 3, boxMode: "separate" });
   eq("分開設置：電話、光纜、同軸各一箱", s.floorBoxes[0].boxes.length, 3);
+  const big = run({ above: 10, below: 2, rows: [row("1F～10F", 10, 2, 4, 1680), row("B1～B2", 2, 7, 1, 1750)] });
+  eq("範例四：1750 m² → 2 路由", big.riser?.routes, 2);
+  eq("範例四：每路由電話超過 300 對 → 線架或線槽、設電信專用管道間", big.riser?.dedicatedShaft, true);
 }
 
 console.log(failed ? `\n${failed} 項不符` : "\n全部吻合");

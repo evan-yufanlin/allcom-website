@@ -39,6 +39,8 @@ export interface TelecomInput {
   capResidential: boolean;
   boxMode: BoxMode;
   mdfDouble: boolean;
+  /** 垂直幹管統一採最大管徑 */
+  riserUniform: boolean;
   rows: FloorRow[];
   houses: { count: number; area: number };
   direct: { pairs: number; cores: number };
@@ -77,6 +79,26 @@ export interface FloorBoxes {
   boxes: BoxPick[];
 }
 
+export interface RiserPipe {
+  role: string;
+  need: string;
+  /** 管徑 mm；null 表示採用線架或線槽 */
+  mm: number | null;
+  count: number;
+}
+
+export interface Riser {
+  routes: number;
+  maxArea: number;
+  phone: number;
+  cores: number;
+  pipes: RiserPipe[];
+  count: number;
+  dedicatedShaft: boolean;
+  lines: string[];
+  flags: string[];
+}
+
 export interface TelecomResult {
   input: TelecomInput;
   rows: RowResult[];
@@ -98,6 +120,7 @@ export interface TelecomResult {
   };
   pipes: { size: number; count: number; lines: string[]; flags: string[] };
   floorBoxes: FloorBoxes[];
+  riser: Riser | null;
   mainBox: BoxPick[] | null;
   mdf: { id: string | null; frames: number | null; double: boolean; width: number | null; depth: number; note: string } | null;
   oldf: { id: string; cabinets: number; kind: string } | null;
@@ -262,6 +285,46 @@ function roomRow(pairs: number, cores: number) {
   return { byPairs, byCores, row: Math.max(byPairs, byCores ?? -1) };
 }
 
+// ---- 垂直幹管（規範 6.5.1 表 6-14、11.1.3、11.2） ----
+
+export const RISER_ROUTE_AREA = 990;
+
+function riserFor(i: TelecomInput, rows: RowResult[], totalPhone: number): Riser | null {
+  const floors = new Map<string, number>();
+  for (const r of rows) floors.set(r.label, (floors.get(r.label) ?? 0) + r.area);
+  if (floors.size < 2 && rows.every((r) => r.floors <= 1)) return null;
+  const maxArea = Math.max(0, ...floors.values());
+  const routes = Math.max(1, ceil(maxArea / RISER_ROUTE_AREA));
+  const totalCores = rows.reduce((s, r) => s + r.cores, 0);
+  const phone = ceil(totalPhone / routes);
+  const cores = ceil(totalCores / routes);
+  const flags: string[] = [];
+
+  const pipes: RiserPipe[] = [];
+  if (phone > 0) {
+    const mm = phone <= 30 ? 28 : phone <= 100 ? 41 : phone <= 200 ? 52 : null;
+    if (phone > 200 && phone < 300) flags.push("表 6-14 未列 201～299 對，暫以線架或線槽估計，請與電信業者洽辦確認。");
+    pipes.push({ role: "電話電纜", need: `${phone} 對`, mm, count: mm === null ? 0 : 1 });
+  }
+  if (i.fiber && cores > 0) pipes.push({ role: "光纜", need: `${cores} 心`, mm: cores <= 24 ? 28 : cores <= 96 ? 41 : 52, count: 1 });
+  if (!i.ftth) pipes.push({ role: "同軸電纜（預留）", need: "41 mm 兩管或 52 mm 一管", mm: 52, count: 1 });
+  const piped = pipes.filter((p) => p.mm !== null);
+  const big = Math.max(28, ...piped.map((p) => p.mm!));
+  pipes.push({ role: "預備管", need: "每一路由至少 1 管", mm: big, count: 1 });
+  if (i.riserUniform) for (const p of pipes) if (p.mm !== null) p.mm = big;
+  const count = Math.max(2, pipes.reduce((s, p) => s + p.count, 0));
+  const dedicatedShaft = count > 6 || pipes.some((p) => p.mm === null);
+
+  const lines = [
+    `各層最大樓地板面積 ${fmt(maxArea)} m² ÷ ${RISER_ROUTE_AREA} m² → ${routes} 路由（11.2.2(1)）`,
+    `電話主幹對數 ＝ Σ 各層配線對數 ${totalPhone} 對${routes > 1 ? ` ÷ ${routes} 路由 → 每路由 ${phone} 對` : ""}（11.1.3(1)）`,
+    ...(i.fiber ? [`光纜心數 ＝ ${totalCores} 心${routes > 1 ? ` ÷ ${routes} 路由 → 每路由 ${cores} 心` : ""}`] : []),
+    `每一路由 ${count} 管${i.riserUniform ? `，統一採 ${big} mm` : ""}；各樓層間管徑不得縮減（11.2.1(2)）`,
+  ];
+  if (routes > 1) flags.push("多路由時各路由線數以平均分配估計，實際依各路由服務範圍計算。");
+  return { routes, maxArea, phone, cores, pipes, count, dedicatedShaft, lines, flags };
+}
+
 // ---- 主計算 ----
 
 export function calculateTelecom(i: TelecomInput): TelecomResult {
@@ -347,6 +410,7 @@ export function calculateTelecom(i: TelecomInput): TelecomResult {
       floorBoxes.push({ label, ...g, boxes: boxesFor(g.p, g.c, g.v, i.boxMode, "main") });
     }
   }
+  const riser = i.mode === "floors" ? riserFor(i, rows, dist ?? 0) : null;
   const mainBox = required ? null : boxesFor(inPairs, cores, coax, i.boxMode, "total");
 
   // MDF、OLDF、電源
@@ -399,6 +463,7 @@ export function calculateTelecom(i: TelecomInput): TelecomResult {
     },
     pipes: { size, count, lines: pipeLines, flags },
     floorBoxes,
+    riser,
     mainBox,
     mdf,
     oldf,
@@ -418,6 +483,7 @@ export function defaultTelecomInput(): TelecomInput {
     capResidential: true,
     boxMode: "bc",
     mdfDouble: false,
+    riserUniform: false,
     rows: [],
     houses: { count: 1, area: 0 },
     direct: { pairs: 0, cores: 0 },
@@ -443,6 +509,15 @@ export const REMINDERS = [
   "電信室室外應有 1 m 以上寬度之通道，可自由進出通往樓梯或其他通道（13.2.7）。",
   "應預留空間供放置空調設備；大樓設有緊急發電機者，得設置緊急電源迴路（13.2.8、13.2.9）。",
   "地上與地下總樓層超過十層或佈纜距離超過 90 m 時，得於適當樓層設置主配線箱（室）-IC（13.2.13）。",
+];
+
+export const RISER_REMINDERS = [
+  "每一路由至少 2 管（含預備管 1 管），總管數最多 6 管；接地導線用管不計入。電話、對絞型數據電纜、光纜及同軸電纜原則上分別設於單獨垂直幹管內（11.2.1(2)）。",
+  "各樓層間每一路由垂直幹管管徑不得縮減；地下停車場、緊急避難所等樓層符合線纜對數最小適用管徑者不在此限（11.2.1(2)）。",
+  "管數超過 6 管或採用線架、線槽時，應設計電信專用管道間，或於公共管道間內預留電信專用位置（11.2.1(3)）。",
+  "路由原則上自底樓至頂樓採垂直直線；公有建築物垂直幹管均需延伸至樓頂，露出屋外時管口應封閉（11.2.2(2)(3)）。",
+  "每層管道間管箱設備前應有工作空間，不得小於寬 60 cm × 高 200 cm × 深 90 cm；工作空間全部在管道間內者，應設出入門（寬 60 cm × 高 200 cm 以上）、工作平台、照明及安全設施（11.2.2(5)）。",
+  "主幹管、線架或線槽不得供避雷針接地導線或非電信設備電源線使用（11.2.2(7)）。",
 ];
 
 export const PIPE_REMINDERS = [

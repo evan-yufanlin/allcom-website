@@ -1,6 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { C, PdfFooter, PdfHeader, pageStyle } from "@/components/pdfCommon";
-import { BOX_MODE_NAME, DISCLAIMER, PIPE_REMINDERS, REMINDERS, USE_NAME, fmt, type TelecomResult } from "@/lib/telecom";
+import { BOX_MODE_NAME, DISCLAIMER, PIPE_REMINDERS, REMINDERS, RISER_REMINDERS, USE_NAME, fmt, type TelecomResult } from "@/lib/telecom";
 import { ROOM_TABLE, SOURCES } from "@/lib/telecomTables";
 
 // 使用者輸入的文字（工程名稱、樓層名稱）以標準字重呈現：粗體子集只含固定文字（見 scripts/pdf-font.mjs）。
@@ -209,6 +209,31 @@ export default function TelecomPdf({ r, projectName, generatedOn }: { r: Telecom
           </>
         )}
 
+        {r.riser && (
+          <View wrap={false}>
+            <Text style={s.sectionTitle}>垂直幹管（電信立管）</Text>
+            {r.riser.lines.map((x) => (
+              <Text key={x} style={s.line}>
+                ・{x}
+              </Text>
+            ))}
+            <Table
+              widths={["30%", "36%", "20%", "14%"]}
+              heads={["用途", "需求（每路由）", "管徑", "管數"]}
+              rows={r.riser.pipes.map((x) => [x.role, x.need, x.mm === null ? "採用線架或線槽" : `${x.mm} mm`, x.count ? String(x.count) : "—"])}
+            />
+            <Text style={[s.line, { marginTop: 3 }]}>
+              每一路由 {r.riser.count} 管 × {r.riser.routes} 路由{r.riser.dedicatedShaft ? "；應設電信專用管道間或於公共管道間預留電信專用位置" : ""}
+            </Text>
+            {r.riser.flags.map((x) => (
+              <Text key={x} style={s.warn}>
+                ※ {x}
+              </Text>
+            ))}
+            <Bullets items={RISER_REMINDERS} />
+          </View>
+        )}
+
         {r.mdf && (
           <View wrap={false}>
             <Text style={s.sectionTitle}>總配線架與光終端配線架</Text>
@@ -244,7 +269,7 @@ export default function TelecomPdf({ r, projectName, generatedOn }: { r: Telecom
         <View wrap={false}>
           <Text style={s.sectionTitle}>引用法規</Text>
           <Text style={s.line}>1. {SOURCES.rules}：第 9 條、附件一</Text>
-          <Text style={s.line}>2. {SOURCES.spec}：6.3、6.4、6.6、8、12.3、13、15.1</Text>
+          <Text style={s.line}>2. {SOURCES.spec}：6.3、6.4、6.5、6.6、8、11.1、11.2、12.3、13、15.1</Text>
           <Text style={s.disclaimer}>{DISCLAIMER}</Text>
         </View>
 
