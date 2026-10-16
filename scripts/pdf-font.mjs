@@ -22,6 +22,8 @@ const TEXT_SOURCES = [
   "src/lib/telecom.ts",
   "src/lib/telecomTables.ts",
   "src/components/TelecomPdf.tsx",
+  "src/lib/parkingVent.ts",
+  "src/components/ParkingVentPdf.tsx",
   "src/data/contact.ts",
 ];
 const OUT_DIR = "public/fonts";

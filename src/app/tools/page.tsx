@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "即時規劃",
-  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、自設變電站、電信室、變壓器規格、避雷設備、給水水理計算、消防水池容量等。",
+  description: "建築初步規劃階段的機電空間線上檢討：台電配電場所、自設變電站、電信室、變壓器規格、避雷設備、停車場通風、給水水理計算、消防水池容量等。",
 };
 
 const tools = [
@@ -36,6 +36,12 @@ const tools = [
     title: "避雷設備檢討",
     tag: "電機",
     summary: "依建築物高度與外周長，檢討應設與否、避雷導線斷面、引下導線條數及富蘭克林避雷針保護角。",
+  },
+  {
+    href: "/tools/parking-ventilation",
+    title: "停車場通風",
+    tag: "空調・通風",
+    summary: "依停車樓地板面積計算通風量，估算風機台數、通風管道間及進、排氣百葉面積。",
   },
   {
     href: "/tools/water-supply",
@@ -79,7 +85,6 @@ const upcoming: { tag: string; items: { title: string; summary: string }[] }[] =
   {
     tag: "停車場・其他",
     items: [
-      { title: "停車場通風", summary: "依停車場面積與換氣量估算進、排氣風機空間。" },
       { title: "垃圾冷藏與資源回收空間", summary: "依戶數估算垃圾冷藏及資源回收空間面積。" },
     ],
   },
