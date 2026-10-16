@@ -14,7 +14,8 @@
     "verify:lightning": "node --experimental-strip-types --no-warnings scripts/verify-lightning.ts",
     "verify:transformers": "node --experimental-strip-types --no-warnings scripts/verify-transformers.ts",
     "verify:substation": "node --experimental-strip-types --no-warnings scripts/verify-substation.ts",
-    "verify:telecom": "node --experimental-strip-types --no-warnings scripts/verify-telecom.ts"
+    "verify:telecom": "node --experimental-strip-types --no-warnings scripts/verify-telecom.ts",
+    "verify:parking-vent": "node --experimental-strip-types --no-warnings scripts/verify-parking-vent.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
