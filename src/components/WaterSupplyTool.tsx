@@ -644,8 +644,8 @@ function AreaReference({ j }: { j: Jurisdiction }) {
             審查計算表未列之用途，可參考本表選「其他（自訂）」自行填入參數。人員以病床、客席、客數等計者，請改用「人數」列輸入床數或客席數。空白欄位為表列未訂。
           </p>
           {j === "taiwan" && (
-            <p className="border-l-2 border-[var(--phase-r)] pl-2.5 text-[0.72rem] leading-relaxed">
-              台水附件十一之一之數值與北水表2-9 相同，但原表用途名稱與數值自「寺院・教會」起未對齊，且未列「停車場、車站」之名稱（最末列標為「工廠」者實為停車場之數值），有錯位疑慮；本表依北水表2-9 對位。另台水附註：總面積為各層樓地板面積總和，無自來水用水設備之地下層及屋突層面積得扣除。
+            <p className="border-l-2 border-accent pl-2.5 text-[0.72rem] leading-relaxed">
+              台水已於 115年4月23日台水營字第1150013983號函修正附件十一之一錯位（115年3月版排版偏移，用途與數值未對齊），修正後數值與北水表2-9 相同。另台水附註：總面積為各層樓地板面積總和，無自來水用水設備之地下層及屋突層面積得扣除。
             </p>
           )}
           <div className="overflow-x-auto">
@@ -833,7 +833,7 @@ export function references(r: WaterSupplyResult) {
   const j = r.input.jurisdiction;
   const list: string[] =
     j === "taiwan"
-      ? [`${SOURCES.standard}：第6條`, `${SOURCES.twRules}：附件十一、附件十一之一`]
+      ? [`${SOURCES.standard}：第6條`, `${SOURCES.twRules}：附件十一、附件十一之一（115年4月修正）`]
       : [`${SOURCES.standard}：第6條`, `${SOURCES.tpRules}：2-4、2-5、2-6、2-7、表2-8～表2-11`];
   if (j === "taiwan" && r.input.baselineDays !== null) list.push(SOURCES.twBaseline);
   if (j === "taiwan" && r.input.baselineLabel.includes("附件九")) list.push(SOURCES.twHighland);

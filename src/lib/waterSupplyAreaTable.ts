@@ -1,5 +1,5 @@
 // 僅供畫面參考，不出現在 PDF（不列入 PDF 字型子集來源）。
-// ---- 各種建築物面積推算法用水量對照表（北水表2-9；台水附件十一之一數值相同） ----
+// ---- 各種建築物面積推算法用水量對照表（北水表2-9；台水附件十一之一（115年4月修正）數值相同） ----
 
 export interface AreaTableRow {
   use: string;
@@ -12,7 +12,7 @@ export interface AreaTableRow {
 
 const D = "〃";
 
-/** 依北水表2-9 之對位謄錄；空白欄位為表列未訂。 */
+/** 依北水表2-9 謄錄，與台水附件十一之一（115年4月修正版）逐列相符；空白欄位為表列未訂。 */
 export const AREA_TABLE: AreaTableRow[] = [
   { use: "辦公室", litres: "100～120", hours: "8", user: "等於在勤者1人", density: "0.2人/m²", ratio: "辦公室60；一般55～57" },
   { use: "政府辦公室・銀行", litres: "100～120", hours: "8", user: "等於僱員1人", density: "0.2人/m²", ratio: "和辦公室相同" },
@@ -45,6 +45,6 @@ export const AREA_TABLE: AreaTableRow[] = [
 ];
 
 export const AREA_TABLE_IMAGES = {
-  taipei: { src: "/tools/water-supply/taipei-table-2-9.jpg", label: "北水表2-9 原始表格" },
-  taiwan: { src: "/tools/water-supply/taiwan-annex-11-1.jpg", label: "台水附件十一之一 原始表格" },
+  taipei: { src: "/tools/water-supply/taipei-table-2-9.jpg", label: "北水規範表2-9（114年1月修編）原始表格" },
+  taiwan: { src: "/tools/water-supply/taiwan-annex-11-1.jpg", label: "台水申裝作業要點附件十一之一（115年4月修正版）原始表格" },
 } as const;
