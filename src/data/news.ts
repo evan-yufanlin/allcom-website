@@ -165,7 +165,7 @@ export const news: NewsItem[] = [
       {
         text: "修正後各建築物用途之數值與臺北自來水事業處規範表2-9 相同；本公司「給水水理計算」工具已依修正版更新原始表格。",
       },
-      { text: "依據：台灣自來水公司 115年4月23日台水營字第1150013983號函（承辦人聯絡資料已略去）。" },
+      { text: "依據：台灣自來水公司 115年4月23日台水營字第1150013983號函。" },
     ],
     pages: [a4("/news/2026-04-taiwan-water-annex-11-1/p1.jpg"), a4("/news/2026-04-taiwan-water-annex-11-1/p2.jpg"), { src: "/news/2026-04-taiwan-water-annex-11-1/p3.jpg", width: 1754, height: 1241 }],
     attachment: {
