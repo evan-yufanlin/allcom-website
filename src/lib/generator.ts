@@ -35,6 +35,8 @@ export interface GenInput {
   dikeWall: number;
   /** 防液堤與油箱距離取法：K/5（預設）或 500 mm（K/5 與 500 取大） */
   dikeRule: DikeRule;
+  /** 選用日用油箱容量（L）；null 或小於建議容量時採建議容量 */
+  tankCapacity: number | null;
   /** 雙開門寬（mm）；null 為建議值 */
   doorWidth: number | null;
   /** 散熱水箱風量（m³/min） */
@@ -95,6 +97,7 @@ export function defaultGenInput(unit: GenUnit): GenInput {
     hours: MIN_HOURS,
     dikeWall: 150,
     dikeRule: "k5",
+    tankCapacity: null,
     doorWidth: null,
     radiatorFlow: null,
     combustionFlow: null,
@@ -184,6 +187,8 @@ export interface GenResult {
   /** 機組附油箱（L，不計入日用油箱） */
   baseTank: number;
   tank: Tank;
+  /** 建議日用油箱容量（L，≧ 所需容積之最小規格） */
+  tankSuggested: number;
   dike: Dike;
   /** 機房內日用油箱（L） */
   roomTank: number;
@@ -248,7 +253,9 @@ export function calculateGenerator(i: GenInput): GenResult {
   const baseTank = u.baseTank ?? 0;
   const fits = TANKS.filter((t) => t.capacity <= ROOM_TANK_LIMIT);
   const picked = fits.find((t) => t.capacity >= needVolume - 1e-9) ?? fits[fits.length - 1];
-  const tank: Tank = { capacity: picked.capacity, size: [...picked.size], leg: picked.leg };
+  const chosen = i.tankCapacity ? fits.find((t) => t.capacity === i.tankCapacity && t.capacity > picked.capacity) : undefined;
+  const use = chosen ?? picked;
+  const tank: Tank = { capacity: use.capacity, size: [...use.size], leg: use.leg };
   const dike = makeDike(tank, i.dikeWall, i.dikeRule);
   if (dike.needHeight > DIKE_MAX_H) warnings.push(`防液堤所需高度 ${fmt(dike.needHeight, 0)} mm 超過 ${DIKE_MAX_H} mm，請加大防液堤面積。`);
   const roomTank = tank.capacity;
@@ -308,6 +315,7 @@ export function calculateGenerator(i: GenInput): GenResult {
     needVolume,
     baseTank,
     tank,
+    tankSuggested: picked.capacity,
     dike,
     roomTank,
     storage,
@@ -406,7 +414,9 @@ export function fuelLines(r: GenResult): string[] {
       ? `耗油量 ＝ ${fmt(u.standbyKw)} kW × ${r.factor} L/kWh ＝ ${fmt(r.fuelRate, 1)} L/h（暫定）`
       : `耗油量 ＝ 型錄滿載 ${fmt(r.fuelRate, 1)} L/h`,
     `所需容積 ＝ ${fmt(r.fuelRate, 1)} × ${fmt(r.hours, 1)} h ÷ 0.9 ＝ ${fmt(r.needVolume, 1)} L`,
-    `日用油箱 → ${fmt(r.tank.capacity, 0)} L（${r.tank.size.join("×")} mm，腳架 ${r.tank.leg}；上限 950 L）`,
+    r.tank.capacity > r.tankSuggested
+      ? `日用油箱：建議 ${fmt(r.tankSuggested, 0)} L，選用加大 ${fmt(r.tank.capacity, 0)} L（${r.tank.size.join("×")} mm，腳架 ${r.tank.leg}；上限 950 L）`
+      : `日用油箱 → ${fmt(r.tank.capacity, 0)} L（${r.tank.size.join("×")} mm，腳架 ${r.tank.leg}；上限 950 L）`,
     r.input.dikeRule === "k5"
       ? `堤與油箱距離 ＝ K/5 ＝ (${r.tank.leg} ＋ ${r.tank.size[2]}) ÷ 5 ＝ ${fmt(r.dike.offset, 0)} mm`
       : `堤與油箱距離 ＝ max（500，K/5 ＝ ${fmt(r.dike.k / 5, 0)}）＝ ${fmt(r.dike.offset, 0)} mm`,

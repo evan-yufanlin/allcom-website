@@ -111,6 +111,18 @@ console.log("\n案例七：案例一改用堤距 500 mm");
   near("機房淨寬", r.width, 5170, 0);
 }
 
+console.log("\n案例八：案例一選用加大油箱");
+{
+  const base = defaultGenInput(unitOf(find("chem-cummins", "CH-1000", "QSK23-G3")));
+  const r = calculateGenerator({ ...base, tankCapacity: 800 });
+  near("建議油箱", r.tankSuggested, 500, 0);
+  near("選用 800 L", r.tank.capacity, 800, 0);
+  near("堤距 (300 ＋ 970) ÷ 5", r.dike.offset, 254, 0);
+  near("防液堤高（432.6 → 433）", r.dike.height, 433, 0);
+  near("機房淨寬 1,000 ＋ 1,700 ＋ 600 ＋ 1,518", r.width, 4818, 0);
+  near("選用小於建議者不採用", calculateGenerator({ ...base, tankCapacity: 300 }).tank.capacity, 500, 0);
+}
+
 console.log("\n案例六：百葉");
 {
   const r = calculateGenerator({ ...defaultGenInput(unitOf(find("chem-cummins", "CH-1000", "QSK23-G3"))), radiatorFlow: 600, combustionFlow: 40 });

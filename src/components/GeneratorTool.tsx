@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import GeneratorPlan from "@/components/GeneratorPlan";
 import PdfSaveButton from "@/components/PdfSaveButton";
 import { Card, Num, Select, SmallButton, Text } from "@/components/ToolFields";
-import { CATALOGS, GENSETS, GEN_SERIES, TANK_SOURCE, VENDOR_NAME, seriesLabel, seriesOf, type GenSet, type Vendor } from "@/data/generators";
+import { CATALOGS, GENSETS, GEN_SERIES, TANKS, TANK_SOURCE, VENDOR_NAME, seriesLabel, seriesOf, type GenSet, type Vendor } from "@/data/generators";
 import { dateStamp } from "@/lib/dateStamp";
 import {
   CLEAR_LABEL,
@@ -14,6 +14,7 @@ import {
   FIRE_DURATIONS,
   NOTES,
   REMINDERS,
+  ROOM_TANK_LIMIT,
   SOURCES,
   SOURCE_LIST,
   calculateGenerator,
@@ -182,6 +183,18 @@ export default function GeneratorTool() {
       <Card title="③ 油箱">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Num label="運轉時數（至少 2）" unit="h" value={settings.hours} onChange={(hours) => set({ hours: hours ?? 0 })} />
+          <Select<string>
+            label="日用油箱容量"
+            value={r.tank.capacity > r.tankSuggested ? String(r.tank.capacity) : "auto"}
+            onChange={(v) => set({ tankCapacity: v === "auto" ? null : Number(v) })}
+            options={[
+              { value: "auto", label: `建議 ${fmt(r.tankSuggested, 0)} L` },
+              ...TANKS.filter((t) => t.capacity > r.tankSuggested && t.capacity <= ROOM_TANK_LIMIT).map((t) => ({
+                value: String(t.capacity),
+                label: `加大 ${fmt(t.capacity, 0)} L（${t.size.join("×")}）`,
+              })),
+            ]}
+          />
           <Select<DikeRule>
             label="堤與油箱距離"
             value={settings.dikeRule}
