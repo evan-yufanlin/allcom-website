@@ -123,13 +123,17 @@ console.log("\n案例八：案例一選用加大油箱");
   near("選用小於建議者不採用", calculateGenerator({ ...base, tankCapacity: 300 }).tank.capacity, 500, 0);
 }
 
-console.log("\n案例六：百葉");
+console.log("\n案例六：進、排氣");
 {
   const r = calculateGenerator({ ...defaultGenInput(unitOf(find("chem-cummins", "CH-1000", "QSK23-G3"))), radiatorFlow: 600, combustionFlow: 40 });
-  near("排氣淨開口", r.exhaust?.freeArea, 2.0, 0.001);
-  near("排氣總面積", r.exhaust?.grossArea, 5.0, 0.001);
-  near("進氣淨開口", r.intake?.freeArea, 4.267, 0.001);
-  near("進氣總面積", r.intake?.grossArea, 10.667, 0.001);
+  near("排氣 600 CMM ÷ 60", r.exhaust?.cms, 10, 0.001);
+  near("排氣風管、管道間 10 ÷ 8", r.exhaust?.ductArea, 1.25, 0.001);
+  near("排氣自由面積 10 ÷ 5", r.exhaust?.freeArea, 2.0, 0.001);
+  near("排氣百葉面積 ÷ 40%", r.exhaust?.louverArea, 5.0, 0.001);
+  near("進氣 640 CMM ÷ 60", r.intake?.cms, 10.667, 0.001);
+  near("進氣風管、管道間 ÷ 8", r.intake?.ductArea, 1.333, 0.001);
+  near("進氣自由面積 ÷ 2.5", r.intake?.freeArea, 4.267, 0.001);
+  near("進氣百葉面積 ÷ 40%", r.intake?.louverArea, 10.667, 0.001);
 }
 
 console.log("\n選型");

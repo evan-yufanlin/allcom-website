@@ -1,6 +1,6 @@
 import { Document, G, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { C, FONT_FAMILY, PdfFooter, PdfHeader, pageStyle } from "@/components/pdfCommon";
-import { DISCLAIMER, NOTES, REMINDERS, SOURCE_LIST, clearLabel, doorLine, fmt, fuelLines, louverLines, type Clearances, type GenResult } from "@/lib/generator";
+import { DISCLAIMER, NOTES, REMINDERS, SOURCE_LIST, airLines, clearLabel, doorLine, fmt, fuelLines, type Clearances, type GenResult } from "@/lib/generator";
 import { ARROW_FILL, FILL, STROKE, buildDrawing } from "@/lib/generatorDrawing";
 
 // 使用者輸入的文字（工程名稱、自訂機組名稱）以標準字重呈現：粗體子集只含固定文字（見 scripts/pdf-font.mjs）。
@@ -106,7 +106,7 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
       <Page size="A4" style={s.page}>
         <PdfHeader generatedOn={generatedOn} />
         <Text style={s.title}>緊急發電機室</Text>
-        <Text style={s.subtitle}>依機組型錄尺寸與留設距離概估機房淨尺寸，並檢討日用油箱、防液堤、儲油槽與進、排氣百葉（初步規劃）</Text>
+        <Text style={s.subtitle}>依機組型錄尺寸與留設距離概估機房淨尺寸，並檢討日用油箱、防液堤、儲油槽與進、排氣（初步規劃）</Text>
 
         <View style={s.meta}>
           <View style={[s.metaCell, { flex: 1.2, borderRightWidth: 1, borderRightColor: C.line }]}>
@@ -190,12 +190,24 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
 
         {r.exhaust && r.intake && (
           <View wrap={false}>
-            <Text style={s.sectionTitle}>進、排氣百葉</Text>
-            {louverLines(r).map((t) => (
-              <Text key={t} style={s.line}>
-                {t}
-              </Text>
-            ))}
+            <Text style={s.sectionTitle}>進、排氣檢討</Text>
+            <View style={{ flexDirection: "row" }}>
+              {(
+                [
+                  ["排氣（＝ 散熱水箱風量）", r.exhaust],
+                  ["進氣（＝ 散熱水箱風量 ＋ 燃燒空氣量）", r.intake],
+                ] as const
+              ).map(([name, a]) => (
+                <View key={name} style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={[s.line, { fontWeight: 700 }]}>{name}</Text>
+                  {airLines(a).map((t) => (
+                    <Text key={t} style={s.line}>
+                      {t}
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </View>
             <Text style={s.note}>{NOTES.louver}</Text>
           </View>
         )}

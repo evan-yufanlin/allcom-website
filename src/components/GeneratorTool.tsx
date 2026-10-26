@@ -25,10 +25,12 @@ import {
   fmt,
   fuelLines,
   suggestDoorWidth,
-  louverLines,
+  airLines,
   pickGensets,
   unitOf,
   type Basis,
+  type Air,
+  type AirSide,
   type Clearances,
   type DikeRule,
   type GenInput,
@@ -211,17 +213,17 @@ export default function GeneratorTool() {
         </RefToggle>
       </Card>
 
-      <Card title="④ 進、排氣百葉">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Num label="散熱水箱風量" unit="m³/min" allowEmpty placeholder="依廠商資料" value={settings.radiatorFlow} onChange={(radiatorFlow) => set({ radiatorFlow })} />
-          <Num label="燃燒空氣量（選填）" unit="m³/min" allowEmpty placeholder="依廠商資料" value={settings.combustionFlow} onChange={(combustionFlow) => set({ combustionFlow })} />
-          <Num label="風管風速（設風管時）" unit="m/s" value={settings.ductVelocity} onChange={(v) => set({ ductVelocity: v ?? 8 })} />
-          <Num label="進氣百葉淨開口風速" unit="m/s" value={settings.intakeVelocity} onChange={(v) => set({ intakeVelocity: v ?? 2.5 })} />
-          <Num label="排氣百葉淨開口風速" unit="m/s" value={settings.exhaustVelocity} onChange={(v) => set({ exhaustVelocity: v ?? 5 })} />
-          <Num label="百葉開口率" unit="%" value={Math.round(settings.freeRatio * 1000) / 10} onChange={(v) => set({ freeRatio: (v ?? 40) / 100 })} />
+      <Card title="④ 進、排氣檢討">
+        <div className="grid grid-cols-2 gap-3">
+          <Num label="散熱水箱風量（CMM）" unit="m³/min" allowEmpty placeholder="依廠商資料" value={settings.radiatorFlow} onChange={(radiatorFlow) => set({ radiatorFlow })} />
+          <Num label="燃燒空氣量（CMM，選填）" unit="m³/min" allowEmpty placeholder="依廠商資料" value={settings.combustionFlow} onChange={(combustionFlow) => set({ combustionFlow })} />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <AirInputs title="排氣（＝ 散熱水箱風量）" side={settings.exhaust} onChange={(exhaust) => set({ exhaust })} />
+          <AirInputs title="進氣（＝ 散熱水箱風量 ＋ 燃燒空氣量）" side={settings.intake} onChange={(intake) => set({ intake })} />
         </div>
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.louver}</p>
-        <RefToggle title="百葉名詞定義">
+        <RefToggle title="百葉名詞定義（自由面積、開口率）">
           <SimpleTable heads={["名詞", "定義", "依據"]} rows={DEFINITIONS.map((d) => [d.term, d.def, d.basis])} />
         </RefToggle>
       </Card>
@@ -346,14 +348,6 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
           {fuelLines(r).map((t) => (
             <span key={t}>{t}</span>
           ))}
-          {r.exhaust && r.intake && (
-            <>
-              <b className="mt-2 font-sans">進、排氣百葉</b>
-              {louverLines(r).map((t) => (
-                <span key={t}>{t}</span>
-              ))}
-            </>
-          )}
         </div>
         <p className="text-[0.72rem] text-muted">{NOTES.fuel}</p>
         <p className="text-[0.72rem] text-muted">
@@ -361,6 +355,8 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
         </p>
         <p className="text-[0.72rem] text-muted">{NOTES.dike}</p>
       </section>
+
+      {r.exhaust && r.intake && <AirResults exhaust={r.exhaust} intake={r.intake} />}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-extrabold">規劃提醒</h2>
@@ -396,6 +392,76 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
         }}
       />
     </div>
+  );
+}
+
+function AirInputs({ title, side, onChange }: { title: string; side: AirSide; onChange: (s: AirSide) => void }) {
+  return (
+    <div className="flex flex-col gap-2 border-l-2 border-accent pl-3">
+      <span className="text-[0.82rem] font-bold">{title}</span>
+      <Num label="風管、管道間風速" unit="m/s" value={side.ductVelocity} onChange={(v) => onChange({ ...side, ductVelocity: v ?? 0 })} />
+      <Num label="百葉自由面積風速（Free Area Velocity）" unit="m/s" value={side.faVelocity} onChange={(v) => onChange({ ...side, faVelocity: v ?? 0 })} />
+      <Num label="百葉開口率" unit="%" value={Math.round(side.ratio * 1000) / 10} onChange={(v) => onChange({ ...side, ratio: (v ?? 0) / 100 })} />
+    </div>
+  );
+}
+
+function AirResults({ exhaust, intake }: { exhaust: Air; intake: Air }) {
+  const rows: [string, (a: Air) => string][] = [
+    ["風量", (a) => `${fmt(a.cmm, 1)} CMM`],
+    ["風量 ÷ 60", (a) => `${fmt(a.cms, 3)} CMS`],
+    ["風管、管道間風速", (a) => `${fmt(a.ductVelocity)} m/s`],
+    ["風管、管道間面積", (a) => `${fmt(a.ductArea)} m²`],
+    ["百葉自由面積風速", (a) => `${fmt(a.faVelocity)} m/s`],
+    ["百葉自由面積", (a) => `${fmt(a.freeArea)} m²`],
+    ["百葉開口率", (a) => `${fmt(a.ratio * 100, 1)}%`],
+    ["百葉面積（不含外框）", (a) => `${fmt(a.louverArea)} m²`],
+  ];
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-[1.05rem] font-extrabold">進、排氣檢討</h2>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[30rem] border-collapse text-[0.78rem] tabular-nums">
+          <thead>
+            <tr className="bg-accent-soft text-left">
+              {["項目", "排氣", "進氣"].map((h) => (
+                <th key={h} className="border border-line px-2 py-1.5 font-bold">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([label, f]) => {
+              const strong = label.endsWith("面積") || label.startsWith("百葉面積");
+              return (
+                <tr key={label} className={strong ? "font-bold" : ""}>
+                  <td className="border border-line px-2 py-1">{label}</td>
+                  <td className={`border border-line px-2 py-1 font-mono ${strong ? "text-accent" : ""}`}>{f(exhaust)}</td>
+                  <td className={`border border-line px-2 py-1 font-mono ${strong ? "text-accent" : ""}`}>{f(intake)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="grid grid-cols-1 gap-2 border border-line bg-surface p-4 font-mono text-[0.76rem] leading-relaxed tabular-nums sm:grid-cols-2">
+        {(
+          [
+            ["排氣", exhaust],
+            ["進氣", intake],
+          ] as const
+        ).map(([name, a]) => (
+          <div key={name} className="flex flex-col gap-0.5">
+            <b className="font-sans">{name}</b>
+            {airLines(a).map((t) => (
+              <span key={t}>{t}</span>
+            ))}
+          </div>
+        ))}
+      </div>
+      <p className="text-[0.72rem] text-muted">{NOTES.louver}</p>
+    </section>
   );
 }
 

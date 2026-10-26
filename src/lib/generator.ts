@@ -43,10 +43,18 @@ export interface GenInput {
   radiatorFlow: number | null;
   /** 燃燒空氣量（m³/min） */
   combustionFlow: number | null;
-  intakeVelocity: number;
-  exhaustVelocity: number;
-  freeRatio: number;
+  intake: AirSide;
+  exhaust: AirSide;
+}
+
+/** 進氣或排氣之設計條件 */
+export interface AirSide {
+  /** 風管、管道間風速（m/s） */
   ductVelocity: number;
+  /** 百葉自由面積風速 Free Area Velocity（m/s） */
+  faVelocity: number;
+  /** 百葉開口率（0～1） */
+  ratio: number;
 }
 
 export type DikeRule = "k5" | "500";
@@ -101,10 +109,8 @@ export function defaultGenInput(unit: GenUnit): GenInput {
     doorWidth: null,
     radiatorFlow: null,
     combustionFlow: null,
-    intakeVelocity: 2.5,
-    exhaustVelocity: 5,
-    freeRatio: 0.4,
-    ductVelocity: 8,
+    intake: { ductVelocity: 8, faVelocity: 2.5, ratio: 0.4 },
+    exhaust: { ductVelocity: 8, faVelocity: 5, ratio: 0.4 },
   };
 }
 
@@ -158,11 +164,18 @@ export interface Dike {
   height: number;
 }
 
-export interface Louver {
-  flow: number;
-  velocity: number;
+/** 進氣或排氣檢討結果 */
+export interface Air extends AirSide {
+  /** 風量（m³/min，CMM） */
+  cmm: number;
+  /** 風量（m³/s，CMS） */
+  cms: number;
+  /** 風管、管道間面積（m²） */
+  ductArea: number;
+  /** 百葉自由面積（m²） */
   freeArea: number;
-  grossArea: number;
+  /** 百葉面積（不含外框，m²） */
+  louverArea: number;
 }
 
 export interface Rect {
@@ -204,10 +217,8 @@ export interface GenResult {
   layout: { gen: Rect; dike: Rect; tank: Rect };
   /** 雙開門（發電機端牆，對齊機組中心） */
   door: { width: number; height: number; suggested: number; y: number };
-  exhaust: Louver | null;
-  intake: Louver | null;
-  exhaustDuct: number | null;
-  intakeDuct: number | null;
+  exhaust: Air | null;
+  intake: Air | null;
   warnings: string[];
 }
 
@@ -215,9 +226,17 @@ export function estimateFactor(kw: number) {
   return kw < 500 ? 0.31 : 0.27;
 }
 
-function louver(flow: number, velocity: number, ratio: number): Louver {
-  const freeArea = velocity > 0 ? flow / 60 / velocity : 0;
-  return { flow, velocity, freeArea, grossArea: ratio > 0 ? freeArea / ratio : 0 };
+function air(cmm: number, side: AirSide): Air {
+  const cms = cmm / 60;
+  const freeArea = side.faVelocity > 0 ? cms / side.faVelocity : 0;
+  return {
+    ...side,
+    cmm,
+    cms,
+    ductArea: side.ductVelocity > 0 ? cms / side.ductVelocity : 0,
+    freeArea,
+    louverArea: side.ratio > 0 ? freeArea / side.ratio : 0,
+  };
 }
 
 function makeDike(t: Tank, wall: number, rule: DikeRule): Dike {
@@ -297,12 +316,11 @@ export function calculateGenerator(i: GenInput): GenResult {
       : `${fmt(c.radiator, 0)} ＋ ${fmt(L, 0)} ＋ ${fmt(c.alternator, 0)} ＝ ${fmt(length, 0)} mm`;
   const widthLine = `${fmt(c.front, 0)} ＋ ${fmt(W, 0)} ＋ ${fmt(c.back, 0)} ＋ 防液堤外寬 ${fmt(dikeW, 0)} ＝ ${fmt(width, 0)} mm`;
 
-  // 百葉
+  // 進、排氣：排氣 ＝ 散熱水箱風量；進氣 ＝ 散熱水箱風量 ＋ 燃燒空氣量
   const rad = i.radiatorFlow && i.radiatorFlow > 0 ? i.radiatorFlow : null;
   const comb = i.combustionFlow && i.combustionFlow > 0 ? i.combustionFlow : 0;
-  const exhaust = rad ? louver(rad, i.exhaustVelocity, i.freeRatio) : null;
-  const intake = rad ? louver(rad + comb, i.intakeVelocity, i.freeRatio) : null;
-  const duct = (q: number) => (i.ductVelocity > 0 ? q / 60 / i.ductVelocity : 0);
+  const exhaust = rad ? air(rad, i.exhaust) : null;
+  const intake = rad ? air(rad + comb, i.intake) : null;
   if (rad && !comb) warnings.push("未輸入燃燒空氣量，進氣量僅計散熱水箱風量。");
 
   return {
@@ -330,8 +348,6 @@ export function calculateGenerator(i: GenInput): GenResult {
     door: { width: doorWidth, height: suggestDoorHeight(u.size[2]), suggested, y: gen.y + W / 2 },
     exhaust,
     intake,
-    exhaustDuct: exhaust ? duct(exhaust.flow) : null,
-    intakeDuct: intake ? duct(intake.flow) : null,
     warnings,
   };
 }
@@ -368,10 +384,10 @@ export const FIRE_DURATIONS: { item: string; time: string; cite: string }[] = [
 ];
 
 export const DEFINITIONS: { term: string; def: string; basis: string }[] = [
-  { term: "百葉總面積", def: "百葉外框之寬 × 高，即外牆應留設之開口大小。", basis: "Louver Fundamentals P.1" },
-  { term: "淨開口面積（free area）", def: "百葉總面積扣除葉片及邊框阻擋後，空氣可自由通過之面積。", basis: "Louver Fundamentals P.1" },
-  { term: "開口率", def: "淨開口面積 ÷ 百葉總面積。", basis: "Louver Fundamentals P.1" },
-  { term: "淨開口風速", def: "風量 ÷ 淨開口面積；本工具輸入之百葉風速即為淨開口風速。", basis: "Louver Fundamentals P.3" },
+  { term: "百葉面積（不含外框）", def: "百葉葉片範圍之寬 × 高，不含外框；外牆開口尺寸另加外框。", basis: "汎德計算慣例" },
+  { term: "自由面積（free area）", def: "百葉面積扣除葉片及邊框阻擋後，空氣可自由通過之面積。", basis: "Louver Fundamentals P.1" },
+  { term: "開口率", def: "自由面積 ÷ 百葉面積。", basis: "Louver Fundamentals P.1" },
+  { term: "自由面積風速（Free Area Velocity）", def: "風量 ÷ 自由面積；百葉選型及 AMCA 500-L 進水測試之風速基準。", basis: "Louver Fundamentals P.3" },
 ];
 
 export const NOTES = {
@@ -382,7 +398,7 @@ export const NOTES = {
   door: "雙開門設於發電機端牆、對齊機組，供機組進出維修；門寬、門高建議值為汎德暫定（機組寬 ＋ 2 × 200 mm、至少 1,800 mm；機組高 ＋ 300 mm），可調整。防火門依防火區劃規定。",
   dike: "防液堤（110.6 決議，參考尺寸）：容量為油箱容量 100% 以上、高度 200～1,500 mm、與油箱距離 K/5 或 500 mm 以上（K 為油箱上側距地面高度）。預設取 K/5，可改為 500 mm；堤高計算扣除油箱本體高於腳架部分所占容量。",
   hours: "運轉時數不低於 2 小時：用戶用電設備裝置規則第 979 條（全載運轉至少二小時之日用燃料），且涵蓋消防設備緊急電源最長時間（防災監控 2 小時）。",
-  louver: "型錄無散熱風量、燃燒空氣量，請依廠商資料輸入；風速、開口率為設計假設值，非法規值。",
+  louver: "型錄無散熱風量、燃燒空氣量，請依廠商資料輸入；排氣量 ＝ 散熱水箱風量，進氣量 ＝ 散熱水箱風量 ＋ 燃燒空氣量。風速、開口率為設計假設值，非法規值。",
 } as const;
 
 export const REMINDERS = [
@@ -434,12 +450,13 @@ export function doorLine(r: GenResult): string {
   return `雙開門寬 ${fmt(r.door.width, 0)} mm（建議 ≧ 機組寬 ${fmt(W, 0)} ＋ 2×${DOOR_SIDE}，至少 ${fmt(DOOR_MIN, 0)} ＝ ${fmt(r.door.suggested, 0)}）；門高建議 ≧ 機組高 ${fmt(H, 0)} ＋ ${DOOR_HEAD} ＝ ${fmt(r.door.height, 0)} mm`;
 }
 
-export function louverLines(r: GenResult): string[] {
-  const i = r.input;
-  const pct = fmt(i.freeRatio * 100, 1);
-  const l = (name: string, x: NonNullable<GenResult["exhaust"]>, duct: number) =>
-    `${name}：風量 ${fmt(x.flow, 1)} m³/min ÷ 60 ÷ ${x.velocity} ＝ 淨開口 ${fmt(x.freeArea)} m²；÷ ${pct}% ＝ 百葉總面積 ${fmt(x.grossArea)} m²；風管 ${fmt(duct)} m²`;
-  return [l("排氣（散熱水箱風量）", r.exhaust!, r.exhaustDuct!), l("進氣（散熱＋燃燒空氣）", r.intake!, r.intakeDuct!)];
+export function airLines(a: Air): string[] {
+  return [
+    `風量 ${fmt(a.cmm, 1)} CMM ÷ 60 ＝ ${fmt(a.cms, 3)} CMS`,
+    `風管、管道間面積 ＝ ${fmt(a.cms, 3)} ÷ ${fmt(a.ductVelocity)} m/s ＝ ${fmt(a.ductArea)} m²`,
+    `百葉自由面積 ＝ ${fmt(a.cms, 3)} ÷ ${fmt(a.faVelocity)} m/s ＝ ${fmt(a.freeArea)} m²`,
+    `百葉面積（不含外框）＝ ${fmt(a.freeArea)} ÷ ${fmt(a.ratio * 100, 1)}% ＝ ${fmt(a.louverArea)} m²`,
+  ];
 }
 
 export const DISCLAIMER = "本計算結果僅供規劃設計參考，實際機組、油箱及通風設備仍應依相關法規及設備廠商資料檢討。";
