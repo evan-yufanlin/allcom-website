@@ -34,6 +34,9 @@ export default function GeneratorPlan({ d }: { d: Drawing }) {
       {d.arrows.map((a, i) => (
         <path key={i} d={a} fill={ARROW_FILL} />
       ))}
+      {d.arcs.map((a, i) => (
+        <path key={`arc${i}`} d={a} fill="none" stroke="#8A8DA0" strokeWidth={u * 0.05} strokeDasharray={`${u * 0.3} ${u * 0.25}`} />
+      ))}
       {d.texts.map((t, i) => (
         <text
           key={i}

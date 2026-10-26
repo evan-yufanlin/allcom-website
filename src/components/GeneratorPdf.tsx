@@ -1,6 +1,6 @@
 import { Document, G, Line, Page, Path, Rect, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 import { C, FONT_FAMILY, PdfFooter, PdfHeader, pageStyle } from "@/components/pdfCommon";
-import { DISCLAIMER, NOTES, REMINDERS, SOURCE_LIST, clearLabel, fmt, fuelLines, louverLines, type Clearances, type GenResult } from "@/lib/generator";
+import { DISCLAIMER, NOTES, REMINDERS, SOURCE_LIST, clearLabel, doorLine, fmt, fuelLines, louverLines, type Clearances, type GenResult } from "@/lib/generator";
 import { ARROW_FILL, FILL, STROKE, buildDrawing } from "@/lib/generatorDrawing";
 
 // 使用者輸入的文字（工程名稱、自訂機組名稱）以標準字重呈現：粗體子集只含固定文字（見 scripts/pdf-font.mjs）。
@@ -63,6 +63,9 @@ function Plan({ r }: { r: GenResult }) {
       ))}
       {d.arrows.map((a, i) => (
         <Path key={i} d={a} fill={ARROW_FILL} />
+      ))}
+      {d.arcs.map((a, i) => (
+        <Path key={`arc${i}`} d={a} fill="none" stroke="#8A8DA0" strokeWidth={u * 0.05} strokeDasharray={`${u * 0.3} ${u * 0.25}`} />
       ))}
       {d.texts.map((t, i) => (
         <G key={i}>
@@ -134,7 +137,7 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
           <View style={s.sumCell}>
             <Text style={s.sumLabel}>日用油箱／儲油槽</Text>
             <Text style={s.sumValue}>
-              {r.tank ? `${fmt(r.tank.capacity, 0)} L` : r.baseTank ? "附油箱" : "—"}／{r.storage > 0 ? `${fmt(r.storage, 0)} L` : "免設"}
+              {fmt(r.tank.capacity, 0)} L／{r.storage > 0 ? `${fmt(r.storage, 0)} L` : "免設"}
             </Text>
           </View>
         </View>
@@ -143,7 +146,7 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
         <View style={s.plan} wrap={false}>
           <Plan r={r} />
         </View>
-        <Text style={s.note}>左側為散熱水箱端（排風百葉），右側為發電機端（進風百葉）；日用油箱與防液堤置於後側長邊、發電機端角落。尺寸單位 mm。</Text>
+        <Text style={s.note}>左側為散熱水箱端（排風百葉）；右側為發電機端，設雙開門供機組進出；進風百葉示意於前側牆發電機段；日用油箱與防液堤置於後側長邊、發電機端角落。尺寸單位 mm。</Text>
 
         {r.warnings.length > 0 && (
           <View wrap={false}>
@@ -163,15 +166,17 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
           <Text style={s.line}>
             淨面積 ＝ {fmt(r.length / 1000)} × {fmt(r.width / 1000)} ＝ {fmt(r.area, 1)} m²
           </Text>
+          <Text style={s.line}>{doorLine(r)}</Text>
           <Text style={s.note}>
             留設距離：{(["radiator", "alternator", "front", "back"] as (keyof Clearances)[]).map((k) => `${clearLabel(k, i.opSide)} ${fmt(i.clear[k], 0)}`).join("；")}（mm）
           </Text>
           <Text style={s.note}>{NOTES.clearance}</Text>
+          <Text style={s.note}>{NOTES.door}</Text>
           <Text style={s.note}>{NOTES.size}</Text>
         </View>
 
         <View wrap={false}>
-          <Text style={s.sectionTitle}>燃料</Text>
+          <Text style={s.sectionTitle}>油箱</Text>
           {fuelLines(r).map((t) => (
             <Text key={t} style={s.line}>
               {t}

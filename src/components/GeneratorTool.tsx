@@ -19,8 +19,10 @@ import {
   clearLabel,
   defaultClearances,
   defaultGenInput,
+  doorLine,
   fmt,
   fuelLines,
+  suggestDoorWidth,
   louverLines,
   pickGensets,
   unitOf,
@@ -143,7 +145,7 @@ export default function GeneratorTool() {
       </Card>
 
       <Card
-        title="② 機組四周留設距離"
+        title="② 機組四周留設距離與門"
         aside={<SmallButton onClick={() => set({ clear: defaultClearances(settings.opSide) })}>恢復預設（110.6 決議）</SmallButton>}
       >
         <Select<OpSide>
@@ -162,9 +164,20 @@ export default function GeneratorTool() {
           ))}
         </div>
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.clearance}</p>
+        <Num
+          label={`雙開門寬（建議 ${fmt(suggestDoorWidth(unit.size[1]), 0)}）`}
+          unit="mm"
+          integer
+          allowEmpty
+          placeholder={`${suggestDoorWidth(unit.size[1])}`}
+          value={settings.doorWidth}
+          onChange={(doorWidth) => set({ doorWidth })}
+          className="sm:max-w-xs"
+        />
+        <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.door}</p>
       </Card>
 
-      <Card title="③ 燃料">
+      <Card title="③ 油箱">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Num label="運轉時數（至少 2）" unit="h" value={settings.hours} onChange={(hours) => set({ hours: hours ?? 0 })} />
           <Num label="防液堤牆厚" unit="mm" integer value={settings.dikeWall} onChange={(dikeWall) => set({ dikeWall: dikeWall ?? 0 })} />
@@ -270,10 +283,10 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
           <Metric label="機房淨長" value={fmt(r.length, 0)} unit="mm" />
           <Metric label="機房淨寬" value={fmt(r.width, 0)} unit="mm" />
           <Metric label="淨面積" value={fmt(r.area, 1)} unit="m²" strong />
-          <Metric label="日用油箱" value={r.tank ? fmt(r.tank.capacity, 0) : r.baseTank ? "附油箱" : "—"} unit={r.tank ? "L" : ""} />
+          <Metric label="日用油箱" value={fmt(r.tank.capacity, 0)} unit="L" />
         </div>
         <p className="mt-3 text-[0.78rem]">
-          耗油量 {fmt(r.fuelRate, 1)} L/h{r.fuelEstimated ? "（暫定）" : "（型錄）"}・運轉 {fmt(r.hours, 1)} h・機房內油箱 {fmt(r.roomTank, 0)} L（管制量{" "}
+          耗油量 {fmt(r.fuelRate, 1)} L/h{r.fuelEstimated ? "（暫定）" : "（型錄）"}・運轉 {fmt(r.hours, 1)} h・日用油箱 {fmt(r.roomTank, 0)} L（管制量{" "}
           {fmt(r.roomMultiple)} 倍）{r.storage > 0 ? `・儲油槽 ${fmt(r.storage, 1)} L` : "・不需儲油槽"}
         </p>
       </section>
@@ -283,7 +296,7 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
         <div className="border border-line bg-white p-2">
           <GeneratorPlan d={drawing} />
         </div>
-        <p className="text-[0.72rem] text-muted">左側為散熱水箱端（排風百葉），右側為發電機端（進風百葉）；日用油箱與防液堤置於後側長邊、發電機端角落。尺寸單位 mm。</p>
+        <p className="text-[0.72rem] text-muted">左側為散熱水箱端（排風百葉）；右側為發電機端，設雙開門供機組進出；進風百葉示意於前側牆發電機段；日用油箱與防液堤置於後側長邊、發電機端角落。尺寸單位 mm。</p>
       </section>
 
       {r.warnings.length > 0 && (
@@ -306,7 +319,8 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
           <span>
             淨面積 ＝ {fmt(r.length / 1000)} × {fmt(r.width / 1000)} ＝ {fmt(r.area, 1)} m²
           </span>
-          <b className="mt-2 font-sans">燃料</b>
+          <span>{doorLine(r)}</span>
+          <b className="mt-2 font-sans">油箱</b>
           {fuelLines(r).map((t) => (
             <span key={t}>{t}</span>
           ))}

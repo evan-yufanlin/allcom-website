@@ -37,16 +37,17 @@ console.log("\n案例一：中興 CUMMINS CH-1000（QSK23-G3）");
   const r = calculateGenerator(defaultGenInput(unitOf(find("chem-cummins", "CH-1000", "QSK23-G3"))));
   near("耗油量", r.fuelRate, 212);
   near("所需容積 212 × 2 ÷ 0.9", r.needVolume, 471.1);
-  near("日用油箱", r.tank?.capacity, 500, 0);
-  near("防液堤內長", r.dike?.inner[0], 2230, 0);
-  near("防液堤內寬", r.dike?.inner[1], 1570, 0);
-  near("防液堤高（143 → 200）", r.dike?.height, 200, 0);
-  near("防液堤外寬", r.dike?.outer[1], 1870, 0);
+  near("日用油箱", r.tank.capacity, 500, 0);
+  near("防液堤內長", r.dike.inner[0], 2230, 0);
+  near("防液堤內寬", r.dike.inner[1], 1570, 0);
+  near("防液堤高（143 → 200）", r.dike.height, 200, 0);
+  near("防液堤外寬", r.dike.outer[1], 1870, 0);
   near("機房淨長", r.length, 5550, 0);
   near("機房淨寬", r.width, 5170, 0);
   near("淨面積", r.area, 28.69, 0.01);
   near("儲油槽", r.storage, 0);
-  near("機房內管制量倍數", r.roomMultiple, 0.5);
+  near("日用油箱管制量倍數", r.roomMultiple, 0.5);
+  near("雙開門建議寬 1,700 ＋ 400", r.door.width, 2100, 0);
 }
 
 console.log("\n案例二：東元 MITSUBISHI TEG-2000S（S16R-PTAA2）");
@@ -55,11 +56,14 @@ console.log("\n案例二：東元 MITSUBISHI TEG-2000S（S16R-PTAA2）");
   check("耗油量依係數估算", r.fuelEstimated && r.factor === 0.27);
   near("耗油量 2,000 × 0.27", r.fuelRate, 540);
   near("所需容積", r.needVolume, 1200);
-  check("附油箱 950 L，不設獨立油箱", r.tank === null && r.baseTank === 950);
+  near("日用油箱（附油箱 950 L 不計入）", r.tank.capacity, 950, 0);
+  near("防液堤外寬", r.dike.outer[1], 2070, 0);
   near("儲油槽", r.storage, 250);
   near("機房淨長", r.length, 7200, 0);
-  near("機房淨寬", r.width, 4100, 0);
-  near("機房內管制量倍數", r.roomMultiple, 0.95);
+  near("機房淨寬 1,000 ＋ 2,500 ＋ 600 ＋ 2,070", r.width, 6170, 0);
+  near("日用油箱管制量倍數", r.roomMultiple, 0.95);
+  check("提醒附油箱併計已達管制量", r.warnings.some((w) => w.includes("附油箱 950 L") && w.includes("已達管制量")));
+  near("雙開門建議寬 2,500 ＋ 400", r.door.width, 2900, 0);
 }
 
 console.log("\n案例三：自訂 300 kW");
@@ -68,29 +72,31 @@ console.log("\n案例三：自訂 300 kW");
   const r = calculateGenerator(defaultGenInput(unit));
   near("耗油量 300 × 0.31", r.fuelRate, 93);
   near("所需容積", r.needVolume, 206.7);
-  near("日用油箱", r.tank?.capacity, 300, 0);
-  near("防液堤高", r.dike?.height, 200, 0);
+  near("日用油箱", r.tank.capacity, 300, 0);
+  near("防液堤高", r.dike.height, 200, 0);
   near("機房淨長", r.length, 4200, 0);
   near("機房淨寬", r.width, 4600, 0);
+  near("雙開門建議寬（至少 1,800）", r.door.width, 1800, 0);
 }
 
 console.log("\n案例四：案例一加大至 8 小時");
 {
   const r = calculateGenerator({ ...defaultGenInput(unitOf(find("chem-cummins", "CH-1000", "QSK23-G3"))), hours: 8 });
   near("所需容積", r.needVolume, 1884.4);
-  near("日用油箱", r.tank?.capacity, 950, 0);
-  near("防液堤高", r.dike?.height, 241, 0);
+  near("日用油箱", r.tank.capacity, 950, 0);
+  near("防液堤高", r.dike.height, 241, 0);
   near("儲油槽", r.storage, 934.4);
   near("機房淨寬", r.width, 5370, 0);
 }
 
-console.log("\n案例五：東元 MTU TEG-1000S 附油箱達管制量");
+console.log("\n案例五：東元 MTU TEG-1000S（附油箱 1,200 L）");
 {
   const r = calculateGenerator(defaultGenInput(unitOf(find("teco-mtu", "TEG-1000S", "16V 2000 G85"))));
   near("耗油量 1,000 × 0.27", r.fuelRate, 270);
-  check("不設獨立油箱", r.tank === null);
-  near("機房內管制量倍數", r.roomMultiple, 1.2);
-  check("提醒已達管制量", r.warnings.some((w) => w.includes("已達管制量")));
+  near("日用油箱 600 ÷ 0.9 → 600", r.tank.capacity, 600, 0);
+  near("防液堤高（157 → 200）", r.dike.height, 200, 0);
+  near("日用油箱管制量倍數", r.roomMultiple, 0.6);
+  check("提醒附油箱併計 1,800 L 已達管制量", r.warnings.some((w) => w.includes("1,800 L") && w.includes("已達管制量")));
 }
 
 console.log("\n案例六：百葉");
