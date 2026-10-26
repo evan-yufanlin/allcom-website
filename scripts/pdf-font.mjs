@@ -24,6 +24,10 @@ const TEXT_SOURCES = [
   "src/components/TelecomPdf.tsx",
   "src/lib/parkingVent.ts",
   "src/components/ParkingVentPdf.tsx",
+  "src/data/generators.ts",
+  "src/lib/generator.ts",
+  "src/lib/generatorDrawing.ts",
+  "src/components/GeneratorPdf.tsx",
   "src/data/contact.ts",
 ];
 const OUT_DIR = "public/fonts";
