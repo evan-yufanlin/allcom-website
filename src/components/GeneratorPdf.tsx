@@ -188,7 +188,7 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
           <Text style={s.note}>{NOTES.dike}</Text>
         </View>
 
-        {r.exhaust && r.intake && (
+        {r.exhaust && r.intake ? (
           <View wrap={false}>
             <Text style={s.sectionTitle}>進、排氣檢討</Text>
             <View style={{ flexDirection: "row" }}>
@@ -209,6 +209,11 @@ export default function GeneratorPdf({ r, projectName, generatedOn }: { r: GenRe
               ))}
             </View>
             <Text style={s.note}>{NOTES.louver}</Text>
+          </View>
+        ) : (
+          <View wrap={false}>
+            <Text style={s.sectionTitle}>進、排氣檢討</Text>
+            <Text style={s.warn}>{NOTES.noAir}</Text>
           </View>
         )}
 

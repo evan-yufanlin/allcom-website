@@ -348,6 +348,17 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
           {fuelLines(r).map((t) => (
             <span key={t}>{t}</span>
           ))}
+          <b className="mt-2 font-sans">進、排氣（風管、管道間與百葉面積）</b>
+          {r.exhaust && r.intake ? (
+            (
+              [
+                ["排氣", r.exhaust],
+                ["進氣", r.intake],
+              ] as const
+            ).flatMap(([name, a]) => airLines(a).map((t) => <span key={name + t}>{`${name}｜${t}`}</span>))
+          ) : (
+            <span className="font-sans text-[var(--phase-r)]">{NOTES.noAir}</span>
+          )}
         </div>
         <p className="text-[0.72rem] text-muted">{NOTES.fuel}</p>
         <p className="text-[0.72rem] text-muted">
@@ -356,7 +367,14 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
         <p className="text-[0.72rem] text-muted">{NOTES.dike}</p>
       </section>
 
-      {r.exhaust && r.intake && <AirResults exhaust={r.exhaust} intake={r.intake} />}
+      {r.exhaust && r.intake ? (
+        <AirResults exhaust={r.exhaust} intake={r.intake} />
+      ) : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-[1.05rem] font-extrabold">進、排氣檢討</h2>
+          <p className="border border-dashed border-line p-4 text-[0.82rem] text-muted">{NOTES.noAir}</p>
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-extrabold">規劃提醒</h2>
