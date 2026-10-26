@@ -223,7 +223,7 @@ export default function GeneratorTool() {
           <AirInputs title="進氣（＝ 散熱水箱風量 ＋ 燃燒空氣量）" side={settings.intake} onChange={(intake) => set({ intake })} />
         </div>
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.louver}</p>
-        <RefToggle title="百葉名詞定義（自由面積、開口率）">
+        <RefToggle title="百葉名詞定義（表面風速、自由面積、開口率）">
           <SimpleTable heads={["名詞", "定義", "依據"]} rows={DEFINITIONS.map((d) => [d.term, d.def, d.basis])} />
         </RefToggle>
       </Card>
@@ -400,8 +400,8 @@ function AirInputs({ title, side, onChange }: { title: string; side: AirSide; on
     <div className="flex flex-col gap-2 border-l-2 border-accent pl-3">
       <span className="text-[0.82rem] font-bold">{title}</span>
       <Num label="風管、管道間風速" unit="m/s" value={side.ductVelocity} onChange={(v) => onChange({ ...side, ductVelocity: v ?? 0 })} />
-      <Num label="百葉自由面積風速（Free Area Velocity）" unit="m/s" value={side.faVelocity} onChange={(v) => onChange({ ...side, faVelocity: v ?? 0 })} />
-      <Num label="百葉開口率" unit="%" value={Math.round(side.ratio * 1000) / 10} onChange={(v) => onChange({ ...side, ratio: (v ?? 0) / 100 })} />
+      <Num label="百葉表面風速（Face Velocity）" unit="m/s" value={side.faceVelocity} onChange={(v) => onChange({ ...side, faceVelocity: v ?? 0 })} />
+      <Num label="百葉開口率（推算自由面積用）" unit="%" value={Math.round(side.ratio * 1000) / 10} onChange={(v) => onChange({ ...side, ratio: (v ?? 0) / 100 })} />
     </div>
   );
 }
@@ -412,10 +412,11 @@ function AirResults({ exhaust, intake }: { exhaust: Air; intake: Air }) {
     ["風量 ÷ 60", (a) => `${fmt(a.cms, 3)} CMS`],
     ["風管、管道間風速", (a) => `${fmt(a.ductVelocity)} m/s`],
     ["風管、管道間面積", (a) => `${fmt(a.ductArea)} m²`],
-    ["百葉自由面積風速", (a) => `${fmt(a.faVelocity)} m/s`],
-    ["百葉自由面積", (a) => `${fmt(a.freeArea)} m²`],
+    ["百葉表面風速", (a) => `${fmt(a.faceVelocity)} m/s`],
+    ["百葉面積", (a) => `${fmt(a.louverArea)} m²`],
     ["百葉開口率", (a) => `${fmt(a.ratio * 100, 1)}%`],
-    ["百葉面積（不含外框）", (a) => `${fmt(a.louverArea)} m²`],
+    ["百葉自由面積", (a) => `${fmt(a.freeArea)} m²`],
+    ["自由面積風速（參考）", (a) => `${fmt(a.faVelocity)} m/s`],
   ];
   return (
     <section className="flex flex-col gap-2">
@@ -433,7 +434,7 @@ function AirResults({ exhaust, intake }: { exhaust: Air; intake: Air }) {
           </thead>
           <tbody>
             {rows.map(([label, f]) => {
-              const strong = label.endsWith("面積") || label.startsWith("百葉面積");
+              const strong = label === "風管、管道間面積" || label === "百葉面積";
               return (
                 <tr key={label} className={strong ? "font-bold" : ""}>
                   <td className="border border-line px-2 py-1">{label}</td>

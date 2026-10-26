@@ -128,12 +128,14 @@ console.log("\n案例六：進、排氣");
   const r = calculateGenerator({ ...defaultGenInput(unitOf(find("chem-cummins", "CH-1000", "QSK23-G3"))), radiatorFlow: 600, combustionFlow: 40 });
   near("排氣 600 CMM ÷ 60", r.exhaust?.cms, 10, 0.001);
   near("排氣風管、管道間 10 ÷ 8", r.exhaust?.ductArea, 1.25, 0.001);
-  near("排氣自由面積 10 ÷ 5", r.exhaust?.freeArea, 2.0, 0.001);
-  near("排氣百葉面積 ÷ 40%", r.exhaust?.louverArea, 5.0, 0.001);
+  near("排氣百葉面積 10 ÷ 表面 2.5", r.exhaust?.louverArea, 4.0, 0.001);
+  near("排氣自由面積 × 40%", r.exhaust?.freeArea, 1.6, 0.001);
+  near("排氣自由面積風速", r.exhaust?.faVelocity, 6.25, 0.001);
   near("進氣 640 CMM ÷ 60", r.intake?.cms, 10.667, 0.001);
   near("進氣風管、管道間 ÷ 8", r.intake?.ductArea, 1.333, 0.001);
-  near("進氣自由面積 ÷ 2.5", r.intake?.freeArea, 4.267, 0.001);
-  near("進氣百葉面積 ÷ 40%", r.intake?.louverArea, 10.667, 0.001);
+  near("進氣百葉面積 ÷ 表面 2.0", r.intake?.louverArea, 5.333, 0.001);
+  near("進氣自由面積 × 40%", r.intake?.freeArea, 2.133, 0.001);
+  near("進氣自由面積風速", r.intake?.faVelocity, 5.0, 0.001);
 }
 
 console.log("\n選型");

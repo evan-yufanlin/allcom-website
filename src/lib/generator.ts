@@ -51,13 +51,17 @@ export interface GenInput {
 export interface AirSide {
   /** 風管、管道間風速（m/s） */
   ductVelocity: number;
-  /** 百葉自由面積風速 Free Area Velocity（m/s） */
-  faVelocity: number;
+  /** 百葉表面風速 Face Velocity（m/s，ASHRAE Table 8） */
+  faceVelocity: number;
   /** 百葉開口率（0～1） */
   ratio: number;
 }
 
 export type DikeRule = "k5" | "500";
+
+/** ASHRAE Handbook—Fundamentals 2009（SI）Ch. 21 Table 8：百葉表面風速（m/s）與適用之單片風量下限（m³/s） */
+export const ASHRAE_FACE = { intake: 2.0, exhaust: 2.5 } as const;
+export const ASHRAE_MIN_FLOW = { intake: 3.3, exhaust: 2.4 } as const;
 
 export const DIKE_RULE_LABEL: Record<DikeRule, string> = {
   k5: "K/5（K 為油箱上側距地面高度）",
@@ -109,8 +113,8 @@ export function defaultGenInput(unit: GenUnit): GenInput {
     doorWidth: null,
     radiatorFlow: null,
     combustionFlow: null,
-    intake: { ductVelocity: 8, faVelocity: 2.5, ratio: 0.4 },
-    exhaust: { ductVelocity: 8, faVelocity: 5, ratio: 0.4 },
+    intake: { ductVelocity: 8, faceVelocity: ASHRAE_FACE.intake, ratio: 0.4 },
+    exhaust: { ductVelocity: 8, faceVelocity: ASHRAE_FACE.exhaust, ratio: 0.4 },
   };
 }
 
@@ -172,10 +176,12 @@ export interface Air extends AirSide {
   cms: number;
   /** 風管、管道間面積（m²） */
   ductArea: number;
-  /** 百葉自由面積（m²） */
-  freeArea: number;
-  /** 百葉面積（不含外框，m²） */
+  /** 百葉面積（m²）＝ CMS ÷ 表面風速 */
   louverArea: number;
+  /** 百葉自由面積（m²）＝ 百葉面積 × 開口率 */
+  freeArea: number;
+  /** 自由面積風速（m/s）＝ CMS ÷ 自由面積 */
+  faVelocity: number;
 }
 
 export interface Rect {
@@ -228,14 +234,16 @@ export function estimateFactor(kw: number) {
 
 function air(cmm: number, side: AirSide): Air {
   const cms = cmm / 60;
-  const freeArea = side.faVelocity > 0 ? cms / side.faVelocity : 0;
+  const louverArea = side.faceVelocity > 0 ? cms / side.faceVelocity : 0;
+  const freeArea = louverArea * side.ratio;
   return {
     ...side,
     cmm,
     cms,
     ductArea: side.ductVelocity > 0 ? cms / side.ductVelocity : 0,
+    louverArea,
     freeArea,
-    louverArea: side.ratio > 0 ? freeArea / side.ratio : 0,
+    faVelocity: freeArea > 0 ? cms / freeArea : 0,
   };
 }
 
@@ -322,6 +330,16 @@ export function calculateGenerator(i: GenInput): GenResult {
   const exhaust = rad ? air(rad, i.exhaust) : null;
   const intake = rad ? air(rad + comb, i.intake) : null;
   if (rad && !comb) warnings.push("未輸入燃燒空氣量，進氣量僅計散熱水箱風量。");
+  for (const [name, a, k] of [
+    ["進氣", intake, "intake"],
+    ["排氣", exhaust, "exhaust"],
+  ] as const) {
+    if (!a) continue;
+    if (a.faceVelocity > ASHRAE_FACE[k])
+      warnings.push(`${name}百葉表面風速 ${fmt(a.faceVelocity)} m/s 大於 ASHRAE Table 8 之 ${ASHRAE_FACE[k]} m/s。`);
+    if (a.cms < ASHRAE_MIN_FLOW[k])
+      warnings.push(`${name}風量 ${fmt(a.cms, 2)} m³/s 小於 ${ASHRAE_MIN_FLOW[k]} m³/s，ASHRAE 建議依 Fig. 14 降低表面風速檢討。`);
+  }
 
   return {
     input: i,
@@ -373,6 +391,7 @@ export const SOURCES = {
   hazmat: "公共危險物品及可燃性高壓氣體製造儲存處理場所設置標準暨安全管理辦法（113年7月16日修正）",
   moi: "內政部110年6月消防安全法令執法疑義研討會決議提案三（110.7.6 內授消字第1100824408號函）",
   louver: "Airolite（Greenheck）Louver Fundamentals 應用指南",
+  ashrae: "ASHRAE Handbook—Fundamentals 2009（SI）Ch. 21 Duct Design",
 } as const;
 
 export const FIRE_DURATIONS: { item: string; time: string; cite: string }[] = [
@@ -384,10 +403,10 @@ export const FIRE_DURATIONS: { item: string; time: string; cite: string }[] = [
 ];
 
 export const DEFINITIONS: { term: string; def: string; basis: string }[] = [
-  { term: "百葉面積（不含外框）", def: "百葉葉片範圍之寬 × 高，不含外框；外牆開口尺寸另加外框。", basis: "汎德計算慣例" },
-  { term: "自由面積（free area）", def: "百葉面積扣除葉片及邊框阻擋後，空氣可自由通過之面積。", basis: "Louver Fundamentals P.1" },
+  { term: "表面風速（Face Velocity）", def: "風量 ÷ 百葉面積（gross louver opening，逐片計並含外框）；進氣 2 m/s（單片 3.3 m³/s 以上）、排氣 2.5 m/s（單片 2.4 m³/s 以上），較小風量依 Fig. 14。", basis: "ASHRAE 2009 Ch. 21 Table 8、p.21.15" },
+  { term: "自由面積（free area）", def: "百葉面積扣除葉片及邊框阻擋後，空氣可自由通過之面積；ASHRAE Fig. 14 以自由面積 45% 以上為基準。", basis: "Louver Fundamentals P.1；ASHRAE Fig. 14" },
   { term: "開口率", def: "自由面積 ÷ 百葉面積。", basis: "Louver Fundamentals P.1" },
-  { term: "自由面積風速（Free Area Velocity）", def: "風量 ÷ 自由面積；百葉選型及 AMCA 500-L 進水測試之風速基準。", basis: "Louver Fundamentals P.3" },
+  { term: "自由面積風速（Free Area Velocity）", def: "風量 ÷ 自由面積 ＝ 表面風速 ÷ 開口率；百葉選型及 AMCA 500-L 進水測試之風速基準，應低於所選百葉之開始滲水點。", basis: "Louver Fundamentals P.3" },
 ];
 
 export const NOTES = {
@@ -398,7 +417,7 @@ export const NOTES = {
   door: "雙開門設於發電機端牆、對齊機組，供機組進出維修；門寬、門高建議值為汎德暫定（機組寬 ＋ 2 × 200 mm、至少 1,800 mm；機組高 ＋ 300 mm），可調整。防火門依防火區劃規定。",
   dike: "防液堤（110.6 決議，參考尺寸）：容量為油箱容量 100% 以上、高度 200～1,500 mm、與油箱距離 K/5 或 500 mm 以上（K 為油箱上側距地面高度）。預設取 K/5，可改為 500 mm；堤高計算扣除油箱本體高於腳架部分所占容量。",
   hours: "運轉時數不低於 2 小時：用戶用電設備裝置規則第 979 條（全載運轉至少二小時之日用燃料），且涵蓋消防設備緊急電源最長時間（防災監控 2 小時）。",
-  louver: "型錄無散熱風量、燃燒空氣量，請依廠商資料輸入；排氣量 ＝ 散熱水箱風量，進氣量 ＝ 散熱水箱風量 ＋ 燃燒空氣量。風速、開口率為設計假設值，非法規值。",
+  louver: "型錄無散熱風量、燃燒空氣量，請依廠商資料輸入；排氣量 ＝ 散熱水箱風量，進氣量 ＝ 散熱水箱風量 ＋ 燃燒空氣量。表面風速預設依 ASHRAE 2009 Ch. 21 Table 8（進氣 2.0、排氣 2.5 m/s，以含外框之百葉面積計）；地面層鄰人行之進氣百葉表面風速不超過 0.5 m/s；最終依 AMCA 500-L 廠商資料選型，自由面積風速應低於開始滲水點。",
 } as const;
 
 export const REMINDERS = [
@@ -420,6 +439,7 @@ export const SOURCE_LIST = [
   SOURCES.moi,
   `${CATALOGS.teco}；${CATALOGS.chem}`,
   TANK_SOURCE,
+  `${SOURCES.ashrae}：Table 8、Fig. 14、p.21.15～21.16`,
   `${SOURCES.louver}：P.1、P.3`,
 ];
 
@@ -454,8 +474,8 @@ export function airLines(a: Air): string[] {
   return [
     `風量 ${fmt(a.cmm, 1)} CMM ÷ 60 ＝ ${fmt(a.cms, 3)} CMS`,
     `風管、管道間面積 ＝ ${fmt(a.cms, 3)} ÷ ${fmt(a.ductVelocity)} m/s ＝ ${fmt(a.ductArea)} m²`,
-    `百葉自由面積 ＝ ${fmt(a.cms, 3)} ÷ ${fmt(a.faVelocity)} m/s ＝ ${fmt(a.freeArea)} m²`,
-    `百葉面積（不含外框）＝ ${fmt(a.freeArea)} ÷ ${fmt(a.ratio * 100, 1)}% ＝ ${fmt(a.louverArea)} m²`,
+    `百葉面積 ＝ ${fmt(a.cms, 3)} ÷ 表面風速 ${fmt(a.faceVelocity)} m/s ＝ ${fmt(a.louverArea)} m²`,
+    `自由面積 ＝ ${fmt(a.louverArea)} × ${fmt(a.ratio * 100, 1)}% ＝ ${fmt(a.freeArea)} m²；自由面積風速 ＝ ${fmt(a.cms, 3)} ÷ ${fmt(a.freeArea)} ＝ ${fmt(a.faVelocity)} m/s（參考）`,
   ];
 }
 
