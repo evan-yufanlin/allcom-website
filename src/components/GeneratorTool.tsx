@@ -305,7 +305,7 @@ function Results({ r, projectName, fileName, generatedOn }: { r: GenResult; proj
         <div className="border border-line bg-white p-2">
           <GeneratorPlan d={drawing} />
         </div>
-        <p className="text-[0.72rem] text-muted">左側為散熱水箱端（排風百葉）；右側為發電機端，設雙開門供機組進出；進風百葉示意於前側牆發電機段；日用油箱與防液堤置於後側長邊、發電機端角落。尺寸單位 mm。</p>
+        <p className="text-[0.72rem] text-muted">左側為散熱水箱端（排風百葉）；右側為發電機端，設雙開門供機組進出；進風百葉示意於前側牆發電機段；日用油箱與防液堤置於後側長邊、散熱水箱端（排風側）角落，發電機端靠門側留空，可配置電盤。尺寸單位 mm。</p>
       </section>
 
       {r.warnings.length > 0 && (

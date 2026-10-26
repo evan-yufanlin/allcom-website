@@ -282,7 +282,7 @@ export function calculateGenerator(i: GenInput): GenResult {
   if (doorWidth < W) warnings.push(`門寬 ${fmt(doorWidth, 0)} mm 小於機組寬 ${fmt(W, 0)} mm，機組無法由門進出。`);
   if (doorWidth > width) warnings.push(`門寬 ${fmt(doorWidth, 0)} mm 大於機房淨寬 ${fmt(width, 0)} mm。`);
   const gen: Rect = { x: c.radiator, y: dikeW + c.back, w: L, h: W };
-  const dikeRect = { x: length - dikeL, y: 0, w: dikeL, h: dikeW };
+  const dikeRect = { x: 0, y: 0, w: dikeL, h: dikeW };
   const tankRect = { x: dikeRect.x + i.dikeWall + dike.offset, y: i.dikeWall + dike.offset, w: tank.size[0], h: tank.size[1] };
   const lengthLine =
     dikeL > genRun
