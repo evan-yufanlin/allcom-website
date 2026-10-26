@@ -9,6 +9,7 @@ import { dateStamp } from "@/lib/dateStamp";
 import {
   CLEAR_LABEL,
   DEFINITIONS,
+  DIKE_RULE_LABEL,
   DISCLAIMER,
   FIRE_DURATIONS,
   NOTES,
@@ -28,6 +29,7 @@ import {
   unitOf,
   type Basis,
   type Clearances,
+  type DikeRule,
   type GenInput,
   type GenResult,
   type GenUnit,
@@ -180,9 +182,16 @@ export default function GeneratorTool() {
       <Card title="③ 油箱">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Num label="運轉時數（至少 2）" unit="h" value={settings.hours} onChange={(hours) => set({ hours: hours ?? 0 })} />
+          <Select<DikeRule>
+            label="堤與油箱距離"
+            value={settings.dikeRule}
+            onChange={(dikeRule) => set({ dikeRule })}
+            options={(["k5", "500"] as const).map((v) => ({ value: v, label: DIKE_RULE_LABEL[v] }))}
+          />
           <Num label="防液堤牆厚" unit="mm" integer value={settings.dikeWall} onChange={(dikeWall) => set({ dikeWall: dikeWall ?? 0 })} />
         </div>
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.hours}</p>
+        <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.dike}</p>
         <RefToggle title="消防設備緊急電源時間">
           <SimpleTable heads={["設備", "時間", "條文"]} rows={FIRE_DURATIONS.map((x) => [x.item, x.time, x.cite])} />
           <p className="mt-2 text-[0.68rem] text-muted">出處：{SOURCES.fire}。</p>

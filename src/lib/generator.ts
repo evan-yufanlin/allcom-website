@@ -33,6 +33,8 @@ export interface GenInput {
   hours: number;
   /** 防液堤牆厚（mm） */
   dikeWall: number;
+  /** 防液堤與油箱距離取法：K/5（預設）或 500 mm（K/5 與 500 取大） */
+  dikeRule: DikeRule;
   /** 雙開門寬（mm）；null 為建議值 */
   doorWidth: number | null;
   /** 散熱水箱風量（m³/min） */
@@ -44,6 +46,13 @@ export interface GenInput {
   freeRatio: number;
   ductVelocity: number;
 }
+
+export type DikeRule = "k5" | "500";
+
+export const DIKE_RULE_LABEL: Record<DikeRule, string> = {
+  k5: "K/5（K 為油箱上側距地面高度）",
+  "500": "500 mm（K/5 與 500 取大）",
+};
 
 export const MIN_HOURS = 2;
 /** 機房內油箱合計上限（L，汎德慣例，低於管制量） */
@@ -85,6 +94,7 @@ export function defaultGenInput(unit: GenUnit): GenInput {
     clear: defaultClearances("long"),
     hours: MIN_HOURS,
     dikeWall: 150,
+    dikeRule: "k5",
     doorWidth: null,
     radiatorFlow: null,
     combustionFlow: null,
@@ -134,6 +144,8 @@ export interface Tank {
 }
 
 export interface Dike {
+  /** K ＝ 腳架高 ＋ 油箱高（mm） */
+  k: number;
   /** 與油箱距離（mm） */
   offset: number;
   inner: [number, number];
@@ -203,12 +215,17 @@ function louver(flow: number, velocity: number, ratio: number): Louver {
   return { flow, velocity, freeArea, grossArea: ratio > 0 ? freeArea / ratio : 0 };
 }
 
-function makeDike(t: Tank, wall: number): Dike {
+function makeDike(t: Tank, wall: number, rule: DikeRule): Dike {
   const k = t.leg + t.size[2];
-  const offset = Math.max(DIKE_OFFSET, k / 5);
+  const offset = rule === "k5" ? k / 5 : Math.max(DIKE_OFFSET, k / 5);
   const inner: [number, number] = [t.size[0] + 2 * offset, t.size[1] + 2 * offset];
-  const needHeight = (t.capacity * 1e6) / (inner[0] * inner[1]);
-  return { offset, inner, outer: [inner[0] + 2 * wall, inner[1] + 2 * wall], needHeight, height: Math.max(DIKE_MIN_H, ceil(needHeight)) };
+  // 堤內容量 ＝ 堤內面積 × 堤高 − 油箱本體占用（堤高超過腳架部分）
+  const area = inner[0] * inner[1];
+  const foot = t.size[0] * t.size[1];
+  const v = t.capacity * 1e6;
+  let needHeight = v / area;
+  if (needHeight > t.leg) needHeight = (v - foot * t.leg) / (area - foot);
+  return { k, offset, inner, outer: [inner[0] + 2 * wall, inner[1] + 2 * wall], needHeight, height: Math.max(DIKE_MIN_H, ceil(needHeight)) };
 }
 
 export function calculateGenerator(i: GenInput): GenResult {
@@ -232,7 +249,7 @@ export function calculateGenerator(i: GenInput): GenResult {
   const fits = TANKS.filter((t) => t.capacity <= ROOM_TANK_LIMIT);
   const picked = fits.find((t) => t.capacity >= needVolume - 1e-9) ?? fits[fits.length - 1];
   const tank: Tank = { capacity: picked.capacity, size: [...picked.size], leg: picked.leg };
-  const dike = makeDike(tank, i.dikeWall);
+  const dike = makeDike(tank, i.dikeWall, i.dikeRule);
   if (dike.needHeight > DIKE_MAX_H) warnings.push(`防液堤所需高度 ${fmt(dike.needHeight, 0)} mm 超過 ${DIKE_MAX_H} mm，請加大防液堤面積。`);
   const roomTank = tank.capacity;
   const storage = Math.max(0, needVolume - roomTank);
@@ -355,7 +372,7 @@ export const NOTES = {
   fuel: "未列耗油量之機型依 Standby kW 估算（暫定）：未滿 500 kW 取 0.31 L/kWh，500 kW 以上取 0.27 L/kWh（依中興電工型錄滿載耗油量回推）。",
   tank: "一律另設獨立日用油箱與防液堤（機組附油箱不計入）；日用油箱以 950 L 為上限（低於柴油管制量 1,000 L），不足部分由儲油槽補給；油箱可用油量以容積 90% 計（110.6 決議）。",
   door: "雙開門設於發電機端牆、對齊機組，供機組進出維修；門寬、門高建議值為汎德暫定（機組寬 ＋ 2 × 200 mm、至少 1,800 mm；機組高 ＋ 300 mm），可調整。防火門依防火區劃規定。",
-  dike: "防液堤（110.6 決議，參考尺寸）：容量為油箱容量 100% 以上、高度 200～1,500 mm、與油箱距離 K/5 或 500 mm 以上（K 為油箱上側距地面高度）。",
+  dike: "防液堤（110.6 決議，參考尺寸）：容量為油箱容量 100% 以上、高度 200～1,500 mm、與油箱距離 K/5 或 500 mm 以上（K 為油箱上側距地面高度）。預設取 K/5，可改為 500 mm；堤高計算扣除油箱本體高於腳架部分所占容量。",
   hours: "運轉時數不低於 2 小時：用戶用電設備裝置規則第 979 條（全載運轉至少二小時之日用燃料），且涵蓋消防設備緊急電源最長時間（防災監控 2 小時）。",
   louver: "型錄無散熱風量、燃燒空氣量，請依廠商資料輸入；風速、開口率為設計假設值，非法規值。",
 } as const;
@@ -390,8 +407,11 @@ export function fuelLines(r: GenResult): string[] {
       : `耗油量 ＝ 型錄滿載 ${fmt(r.fuelRate, 1)} L/h`,
     `所需容積 ＝ ${fmt(r.fuelRate, 1)} × ${fmt(r.hours, 1)} h ÷ 0.9 ＝ ${fmt(r.needVolume, 1)} L`,
     `日用油箱 → ${fmt(r.tank.capacity, 0)} L（${r.tank.size.join("×")} mm，腳架 ${r.tank.leg}；上限 950 L）`,
+    r.input.dikeRule === "k5"
+      ? `堤與油箱距離 ＝ K/5 ＝ (${r.tank.leg} ＋ ${r.tank.size[2]}) ÷ 5 ＝ ${fmt(r.dike.offset, 0)} mm`
+      : `堤與油箱距離 ＝ max（500，K/5 ＝ ${fmt(r.dike.k / 5, 0)}）＝ ${fmt(r.dike.offset, 0)} mm`,
     `防液堤內 ＝ (${r.tank.size[0]} ＋ 2×${fmt(r.dike.offset, 0)}) × (${r.tank.size[1]} ＋ 2×${fmt(r.dike.offset, 0)}) ＝ ${fmt(r.dike.inner[0], 0)} × ${fmt(r.dike.inner[1], 0)} mm`,
-    `防液堤高 ＝ ${fmt(r.tank.capacity, 0)} L ÷ 堤內面積 ＝ ${fmt(r.dike.needHeight, 0)} mm → ${fmt(r.dike.height, 0)} mm（最低 200）；外尺寸 ${fmt(r.dike.outer[0], 0)} × ${fmt(r.dike.outer[1], 0)} mm`,
+    `防液堤高：堤內容量（扣除油箱高於腳架部分）≧ ${fmt(r.tank.capacity, 0)} L → ${fmt(r.dike.needHeight, 1)} mm → 取 ${fmt(r.dike.height, 0)} mm${r.dike.needHeight < DIKE_MIN_H ? "（最低 200）" : ""}；外尺寸 ${fmt(r.dike.outer[0], 0)} × ${fmt(r.dike.outer[1], 0)} mm`,
     `日用油箱 ${fmt(r.roomTank, 0)} L ÷ 1,000 L ＝ 管制量 ${fmt(r.roomMultiple)} 倍`,
     r.storage > 0
       ? `儲油槽 ＝ ${fmt(r.needVolume, 1)} − ${fmt(r.roomTank, 0)} ＝ ${fmt(r.storage, 1)} L（管制量 ${fmt(r.storageMultiple)} 倍）`
