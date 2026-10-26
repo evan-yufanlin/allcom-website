@@ -16,11 +16,11 @@ export interface VentInput {
   fanFlow: number | null;
   /** 管道風速（m/s） */
   ductVelocity: number;
-  /** 進氣百葉淨開口風速（m/s） */
+  /** 進氣百葉表面風速（m/s，ASHRAE Table 8） */
   intakeVelocity: number;
-  /** 排氣百葉淨開口風速（m/s） */
+  /** 排氣百葉表面風速（m/s，ASHRAE Table 8） */
   exhaustVelocity: number;
-  /** 百葉開口率（0～1） */
+  /** 百葉開口率（0～1，推算自由面積用） */
   freeRatio: number;
   /** 各層同時運轉（否則分時運轉，風量不累計） */
   simultaneous: boolean;
@@ -35,10 +35,14 @@ export interface FloorResult extends VentFloor {
 }
 
 export interface Louver {
+  /** 表面風速（m/s） */
   velocity: number;
-  freeArea: number;
+  /** 百葉面積（m²，含外框）＝ 風量 ÷ 表面風速 */
   grossArea: number;
-  faceVelocity: number;
+  /** 自由面積（m²）＝ 百葉面積 × 開口率 */
+  freeArea: number;
+  /** 自由面積風速（m/s，參考） */
+  freeVelocity: number;
 }
 
 export interface VentResult {
@@ -59,9 +63,9 @@ export const fmt = (n: number, digits = 2) => n.toLocaleString("zh-TW", { maximu
 const ceil = (x: number) => Math.ceil(x - 1e-9);
 
 function louver(flow: number, velocity: number, ratio: number): Louver {
-  const freeArea = velocity > 0 ? flow / 3600 / velocity : 0;
-  const grossArea = ratio > 0 ? freeArea / ratio : 0;
-  return { velocity, freeArea, grossArea, faceVelocity: velocity * ratio };
+  const grossArea = velocity > 0 ? flow / 3600 / velocity : 0;
+  const freeArea = grossArea * ratio;
+  return { velocity, grossArea, freeArea, freeVelocity: freeArea > 0 ? flow / 3600 / freeArea : 0 };
 }
 
 export function calculateVent(i: VentInput): VentResult {
@@ -103,8 +107,8 @@ export function defaultVentInput(): VentInput {
     rate: 25,
     fanFlow: null,
     ductVelocity: 8,
-    intakeVelocity: 2.5,
-    exhaustVelocity: 5,
+    intakeVelocity: 2,
+    exhaustVelocity: 2.5,
     freeRatio: 0.4,
     simultaneous: false,
   };
@@ -116,6 +120,7 @@ export const SOURCES = {
   equipment: "建築技術規則建築設備編（111年12月29日修正）",
   design: "建築技術規則建築設計施工編（115年2月23日修正）",
   louver: "Airolite（Greenheck）Louver Fundamentals 應用指南",
+  ashrae: "ASHRAE Handbook—Fundamentals 2009（SI）Ch. 21 Duct Design",
 } as const;
 
 export const LAW_REFS: { cite: string; text: string }[] = [
@@ -128,15 +133,15 @@ export const LAW_REFS: { cite: string; text: string }[] = [
 ];
 
 export const DEFINITIONS: { term: string; def: string; basis: string }[] = [
-  { term: "百葉總面積（louver face area）", def: "百葉外框之寬 × 高，即外牆應留設之開口大小。", basis: "Louver Fundamentals P.1" },
-  { term: "淨開口面積（free area）", def: "百葉總面積扣除葉片及邊框阻擋後，空氣可自由通過之面積。", basis: "Louver Fundamentals P.1" },
-  { term: "開口率", def: "淨開口面積 ÷ 百葉總面積，常以百分比表示。", basis: "Louver Fundamentals P.1" },
-  { term: "淨開口風速（free area velocity）", def: "風量 ÷ 淨開口面積；百葉選型及 AMCA 500-L 進水測試之風速基準。本工具輸入之百葉風速即為淨開口風速。", basis: "Louver Fundamentals P.3" },
-  { term: "表面風速（face velocity）", def: "風量 ÷ 百葉總面積 ＝ 淨開口風速 × 開口率；同一風量下小於淨開口風速，僅供與其他資料比對。", basis: "依上列定義換算（該指南未列此名詞）" },
+  { term: "百葉面積（louver face area）", def: "百葉之寬 × 高（gross louver opening，逐片計並含外框），即外牆應留設之開口大小。", basis: "Louver Fundamentals P.1；ASHRAE 2009 p.21.15" },
+  { term: "表面風速（face velocity）", def: "風量 ÷ 百葉面積；本工具輸入之百葉風速即為表面風速。ASHRAE 建議進氣 2 m/s（單片 3.3 m³/s 以上）、排氣 2.5 m/s（單片 2.4 m³/s 以上），較小風量依 Fig. 14。", basis: "ASHRAE 2009 Ch. 21 Table 8" },
+  { term: "自由面積（free area）", def: "百葉面積扣除葉片及邊框阻擋後，空氣可自由通過之面積；ASHRAE Fig. 14 以 45% 以上為基準。", basis: "Louver Fundamentals P.1；ASHRAE Fig. 14" },
+  { term: "開口率", def: "自由面積 ÷ 百葉面積，常以百分比表示。", basis: "Louver Fundamentals P.1" },
+  { term: "自由面積風速（free area velocity）", def: "風量 ÷ 自由面積 ＝ 表面風速 ÷ 開口率；AMCA 500-L 進水測試之風速基準，應低於所選百葉之開始滲水點。", basis: "Louver Fundamentals P.3" },
 ];
 
 export const REMINDERS = [
-  "風速、開口率為設計假設值，非法規值；請依實際百葉規格、風機型錄調整。",
+  "百葉表面風速預設依 ASHRAE 2009 Ch. 21 Table 8（進氣 2 m/s、排氣 2.5 m/s，以含外框之百葉面積計）；地面層鄰人行之進氣百葉表面風速不超過 0.5 m/s；最終依 AMCA 500-L 廠商資料選型。風速、開口率非法規值。",
   "停車場通風通常為各層共用管道間，並以計時器分時運轉（各層不同時運轉）；如各層同時運轉或各層獨立管道，風量另依實際檢討。",
   "管道間面積為風道淨斷面，未含管道間結構、保溫及檢修空間。",
   "進、排氣百葉宜避開人行動線，並避免進、排氣口相互短路。",

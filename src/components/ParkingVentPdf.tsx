@@ -54,7 +54,7 @@ function Table({ widths, heads, rows }: { widths: string[]; heads: string[]; row
 }
 
 const louverLine = (name: string, q: number, l: Louver, ratio: number) =>
-  `${name}：淨開口 ${fmt(q, 0)} ÷ 3600 ÷ ${l.velocity} ＝ ${fmt(l.freeArea)} m²；總面積 ÷ ${fmt(ratio * 100, 1)}% ＝ ${fmt(l.grossArea)} m²（表面風速 ${fmt(l.faceVelocity)} m/s）`;
+  `${name}：百葉面積 ${fmt(q, 0)} ÷ 3600 ÷ 表面風速 ${l.velocity} ＝ ${fmt(l.grossArea)} m²；自由面積 × ${fmt(ratio * 100, 1)}% ＝ ${fmt(l.freeArea)} m²（自由面積風速 ${fmt(l.freeVelocity)} m/s，參考）`;
 
 export default function ParkingVentPdf({ r, projectName, generatedOn }: { r: VentResult; projectName: string; generatedOn: string }) {
   const i = r.input;
@@ -101,10 +101,10 @@ export default function ParkingVentPdf({ r, projectName, generatedOn }: { r: Ven
 
         <Text style={s.sectionTitle}>設計條件</Text>
         <Text style={s.line}>
-          通風量 {i.rate} m³/h·m²（設備編第 102 條、設計施工編第 139 條）；管道風速 {i.ductVelocity} m/s；進氣百葉淨開口風速 {i.intakeVelocity} m/s；排氣百葉淨開口風速{" "}
+          通風量 {i.rate} m³/h·m²（設備編第 102 條、設計施工編第 139 條）；管道風速 {i.ductVelocity} m/s；進氣百葉表面風速 {i.intakeVelocity} m/s；排氣百葉表面風速{" "}
           {i.exhaustVelocity} m/s；百葉開口率 {fmt(i.freeRatio * 100, 1)}%{fans ? `；單台風機風量 ${fmt(i.fanFlow!, 0)} m³/h` : ""}
         </Text>
-        <Text style={s.note}>風速、開口率為設計假設值，非法規值。</Text>
+        <Text style={s.note}>百葉表面風速依 ASHRAE 2009 Ch. 21 Table 8；風速、開口率非法規值。</Text>
 
         <Text style={s.sectionTitle}>各層通風量</Text>
         <Table
@@ -152,7 +152,8 @@ export default function ParkingVentPdf({ r, projectName, generatedOn }: { r: Ven
           <Text style={s.sectionTitle}>引用法規與資料</Text>
           <Text style={s.line}>1. {SOURCES.equipment}：第 97 條、第 102 條</Text>
           <Text style={s.line}>2. {SOURCES.design}：第 62 條、第 138 條、第 139 條、第 144 條</Text>
-          <Text style={s.line}>3. {SOURCES.louver}：P.1、P.3</Text>
+          <Text style={s.line}>3. {SOURCES.ashrae}：Table 8、Fig. 14</Text>
+          <Text style={s.line}>4. {SOURCES.louver}：P.1、P.3</Text>
           <Text style={s.disclaimer}>{DISCLAIMER}</Text>
         </View>
 

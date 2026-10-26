@@ -62,8 +62,8 @@ export default function ParkingVentTool() {
           <Num label="通風量（法規 25 以上）" unit="m³/h·m²" value={p.rate} onChange={(rate) => set({ rate: rate ?? 25 })} />
           <Num label="單台風機風量（選填）" unit="m³/h" value={p.fanFlow} allowEmpty placeholder="依廠商型錄" onChange={(fanFlow) => set({ fanFlow })} />
           <Num label="管道風速" unit="m/s" value={p.ductVelocity} onChange={(ductVelocity) => set({ ductVelocity: ductVelocity ?? 8 })} />
-          <Num label="進氣百葉淨開口風速" unit="m/s" value={p.intakeVelocity} onChange={(intakeVelocity) => set({ intakeVelocity: intakeVelocity ?? 2.5 })} />
-          <Num label="排氣百葉淨開口風速" unit="m/s" value={p.exhaustVelocity} onChange={(exhaustVelocity) => set({ exhaustVelocity: exhaustVelocity ?? 5 })} />
+          <Num label="進氣百葉表面風速" unit="m/s" value={p.intakeVelocity} onChange={(intakeVelocity) => set({ intakeVelocity: intakeVelocity ?? 2 })} />
+          <Num label="排氣百葉表面風速" unit="m/s" value={p.exhaustVelocity} onChange={(exhaustVelocity) => set({ exhaustVelocity: exhaustVelocity ?? 2.5 })} />
           <Num
             label="百葉開口率"
             unit="%"
@@ -74,8 +74,8 @@ export default function ParkingVentTool() {
         <CheckBox checked={p.simultaneous} onChange={(simultaneous) => set({ simultaneous })}>
           各層同時運轉（管道與百葉改依累計風量計算）；未勾選時為共用管道間、計時器分時運轉，風量不累計
         </CheckBox>
-        <p className="text-[0.72rem] leading-relaxed text-muted">風速、開口率為設計假設值，非法規值，請依實際百葉規格、風機型錄調整。</p>
-        <RefToggle title="百葉名詞定義（淨開口風速、表面風速）">
+        <p className="text-[0.72rem] leading-relaxed text-muted">百葉表面風速預設依 ASHRAE 2009 Ch. 21 Table 8；開口率用於推算自由面積。風速、開口率非法規值，請依實際百葉規格、風機型錄調整。</p>
+        <RefToggle title="百葉名詞定義（表面風速、自由面積風速）">
           <DefTable />
         </RefToggle>
       </Card>
@@ -187,7 +187,8 @@ function Results({ r, projectName, fileName, generatedOn }: { r: VentResult; pro
         <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[0.82rem] leading-relaxed">
           <li>{SOURCES.equipment}：第 97 條、第 102 條</li>
           <li>{SOURCES.design}：第 62 條、第 138 條、第 139 條、第 144 條</li>
-          <li>{SOURCES.louver}：P.1、P.3（百葉淨開口面積、淨開口風速）</li>
+          <li>{SOURCES.ashrae}：Table 8、Fig. 14（百葉表面風速）</li>
+          <li>{SOURCES.louver}：P.1、P.3（百葉自由面積、自由面積風速）</li>
         </ol>
       </section>
 
@@ -213,8 +214,8 @@ function Results({ r, projectName, fileName, generatedOn }: { r: VentResult; pro
 function LouverLine({ name, q, l, ratio }: { name: string; q: number; l: Louver; ratio: number }) {
   return (
     <span>
-      {name}：淨開口 {fmt(q, 0)} ÷ 3600 ÷ {l.velocity} ＝ {fmt(l.freeArea)} m²；總面積 ÷ {fmt(ratio * 100, 1)}% ＝ <b>{fmt(l.grossArea)} m²</b>（表面風速{" "}
-      {fmt(l.faceVelocity)} m/s）
+      {name}：百葉面積 {fmt(q, 0)} ÷ 3600 ÷ 表面風速 {l.velocity} ＝ <b>{fmt(l.grossArea)} m²</b>；自由面積 × {fmt(ratio * 100, 1)}% ＝ {fmt(l.freeArea)} m²（自由面積風速{" "}
+      {fmt(l.freeVelocity)} m/s，參考）
     </span>
   );
 }

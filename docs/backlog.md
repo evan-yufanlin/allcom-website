@@ -28,7 +28,7 @@
 ## 後續規劃
 
 - 即時規劃（/tools 頁已列為「建置中」）：依以往「設備空間概估」案例，初步規劃不含管道間。
-  - 電機：受電箱與電錶箱（依戶數，W60～180 cm，前方 1 m 通道）、自設電氣室（第一版已完成 `/tools/substation`，見 docs/substation-spec.md 第 7 節）、緊急發電機室
+  - 電機：受電箱與電錶箱（依戶數，W60～180 cm，前方 1 m 通道）、自設電氣室（第一版已完成 `/tools/substation`，見 docs/substation-spec.md 第 7 節）、緊急發電機室（第一版已完成 `/tools/generator`，第二版見 docs/generator-spec.md 第 8 節）
     （例：150 kW → 6 × 4 m；600 kW → 7.3 × 5.3 m；進排氣百葉、1.5 m 防火門、高 3 m 以上）。
   - 電信：電信室（已完成 `/tools/telecom`，第二版見 docs/telecom-spec.md 第 14 節）。
   - 給排水：污水處理機房與池（例：110 CMD → 池 80 m²、淨深 3 m）、雨水貯集（綠建築每萬 m² 10 × Ns m³）、
@@ -46,6 +46,7 @@
 
 - 給水水理計算規則或參數修改後，執行 `npm run verify:water` 核對規格文件第 9 節之案例。
 - 停車場通風計算修改後，執行 `npm run verify:parking-vent` 核對規格第 5 節手算案例。
+- 緊急發電機室計算或型錄資料修改後，執行 `npm run verify:generator` 核對 `docs/generator-spec.md` 第 6 節之案例。
 - 電信室規則修改後，執行 `npm run verify:telecom` 核對技術規範圖 7-10 及設計範例一～六。
 - 自設變電站計算或範本修改後，執行 `npm run verify:substation` 核對文升之單列、三列方案。
 - 變壓器規格資料修改後，執行 `npm run verify:transformers` 抽查型錄數值。
