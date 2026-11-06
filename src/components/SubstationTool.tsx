@@ -284,7 +284,7 @@ function Results({
 
       {r.warnings.length > 0 && (
         <section className="flex flex-col gap-1.5 border-l-2 border-[var(--phase-r)] pl-3">
-          <h2 className="text-[0.95rem] font-extrabold">門扇干涉提醒</h2>
+          <h2 className="text-[0.95rem] font-extrabold">提醒（電度表工作空間、門扇干涉）</h2>
           {r.warnings.map((w) => (
             <p key={w} className="text-[0.8rem]">
               {w}

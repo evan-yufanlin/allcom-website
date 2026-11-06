@@ -28,7 +28,7 @@
 ## 後續規劃
 
 - 即時規劃（/tools 頁已列為「建置中」）：依以往「設備空間概估」案例，初步規劃不含管道間。
-  - 電機：受電箱與電錶箱（依戶數，W60～180 cm，前方 1 m 通道）、自設電氣室（第一版已完成 `/tools/substation`，見 docs/substation-spec.md 第 7 節）、緊急發電機室（第一版已完成 `/tools/generator`，第二版見 docs/generator-spec.md 第 8 節）
+  - 電機：受電箱與電錶箱（依戶數，W60～180 cm；電度表接線箱前方工作空間低壓 0.9 m、高壓 1.5 m，用戶用電設備裝置規則第 1009 條，115.11.4 修正）、自設電氣室（第一版已完成 `/tools/substation`，見 docs/substation-spec.md 第 7 節）、緊急發電機室（第一版已完成 `/tools/generator`，第二版見 docs/generator-spec.md 第 8 節）
     （例：150 kW → 6 × 4 m；600 kW → 7.3 × 5.3 m；進排氣百葉、1.5 m 防火門、高 3 m 以上）。
   - 電信：電信室（已完成 `/tools/telecom`，第二版見 docs/telecom-spec.md 第 14 節）。
   - 給排水：污水處理機房與池（例：110 CMD → 池 80 m²、淨深 3 m）、雨水貯集（綠建築每萬 m² 10 × Ns m³）、
