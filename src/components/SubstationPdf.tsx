@@ -178,7 +178,7 @@ export default function SubstationPdf({
 
         {r.warnings.length > 0 && (
           <View wrap={false}>
-            <Text style={s.sectionTitle}>門扇干涉提醒</Text>
+            <Text style={s.sectionTitle}>提醒（電度表工作空間、門扇干涉）</Text>
             {r.warnings.map((t) => (
               <Text key={t} style={s.warn}>
                 {t}

@@ -91,6 +91,9 @@ export interface Clearances {
   right: number;
 }
 
+/** 用戶用電設備裝置規則第 1009 條第 4 款（115.11.4 修正）：高壓電度表接線箱前方工作空間（mm）；高壓電度表裝於 MOF 盤內 */
+export const METER_HV_CLEAR = 1500;
+
 export const DEFAULT_CLEARANCES: Clearances = { front: 1800, rear: 800, faceToFace: 2000, backToBack: 800, left: 1500, right: 500 };
 
 export const CLEARANCE_LABEL: Record<keyof Clearances, string> = {
@@ -204,8 +207,22 @@ export function calculateSubstation(rows: RowInput[], c: Clearances): Substation
     area: (length * depth) / 1e6,
     lengthLine: top ? `${fmt(c.left)} ＋ ${fmt(longest)}（第${top.index}列設備合計）＋ ${fmt(c.right)} ＝ ${fmt(length)}` : "",
     depthLine: segments.length ? `${segments.map((s) => fmt(s.size)).join(" ＋ ")} ＝ ${fmt(depth)}` : "",
-    warnings: doorWarnings(placed, segments),
+    warnings: [...meterWarnings(placed, segments), ...doorWarnings(placed, segments)],
   };
+}
+
+function meterWarnings(rows: RowResult[], segments: SubstationResult["segments"]) {
+  const out: string[] = [];
+  rows.forEach((r) => {
+    if (!r.items.some((e) => e.name === "MOF")) return;
+    const k = segments.findIndex((s) => s.kind === "row" && s.y === r.y);
+    const front = segments[r.facing === "down" ? k + 1 : k - 1];
+    if (front && front.size < METER_HV_CLEAR)
+      out.push(
+        `第${r.index}列 MOF 盤（內含高壓電度表）前方工作空間 ${fmt(front.size)}，小於用戶用電設備裝置規則第 1009 條 ${fmt(METER_HV_CLEAR)}。`,
+      );
+  });
+  return out;
 }
 
 function doorWarnings(rows: RowResult[], segments: SubstationResult["segments"]) {
@@ -284,6 +301,7 @@ export const REMINDERS = [
   "電纜溝、進出線與高壓側連接方式尚未計入。",
   "室內淨高依設備高度檢討（模鑄式最高 2950 mm；油浸式與配電盤標準圖無高度）。",
   "變壓器緊貼盤體時，請廠商確認散熱與維修空間。",
+  "高壓電度表裝於 MOF 盤內，盤前工作空間至少 1.5 m；另設低壓電度表接線箱者，箱前至少 0.9 m（用戶用電設備裝置規則第 1009 條，115.11.4 修正）。",
 ];
 
 export const DISCLAIMER = "本結果為初步規劃概估，實際配置仍應依設備廠商圖面、台電審查及相關法規檢討。";

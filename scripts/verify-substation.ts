@@ -36,6 +36,18 @@ console.log("\n方案二：三列");
   eq("第3列 SC 後緣較油 2500 短 170", r.rows[2].items[1].y - r.rows[2].items[0].y, 170);
 }
 
+console.log("\nMOF 盤前工作空間（第 1009 條 1.5 m）");
+{
+  const t = tpl("single");
+  const ok = calculateSubstation(t.rows, { ...t.clearances, front: 1500 });
+  eq("盤前 1,500 不提醒", ok.warnings.filter((w) => w.includes("第 1009 條")).length, 0);
+  const r = calculateSubstation(t.rows, { ...t.clearances, front: 1400 });
+  eq("盤前 1,400 提醒", r.warnings.filter((w) => w.includes("第 1009 條") && w.includes("1,400")).length, 1);
+  const three = tpl("three");
+  const f = calculateSubstation(three.rows, { ...three.clearances, faceToFace: 1400 });
+  eq("面對面 1,400（第1列含 MOF）提醒", f.warnings.filter((w) => w.includes("第1列 MOF")).length, 1);
+}
+
 console.log("\n其他規則");
 {
   const c = DEFAULT_CLEARANCES;
