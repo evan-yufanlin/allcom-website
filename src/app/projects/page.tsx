@@ -6,6 +6,15 @@ import { dbConfigured } from "@/server/db";
 import { getProject, listProjects } from "@/server/projects";
 import { createProject, loginAdmin, loginProject, logout } from "./actions";
 
+function setupChecks() {
+  const secret = process.env.SESSION_SECRET ?? "";
+  return [
+    { name: "DATABASE_URL", ok: dbConfigured(), hint: "未設定（Neon 連接專案時，環境變數前綴需為 DATABASE）" },
+    { name: "ADMIN_PASSWORD", ok: Boolean(process.env.ADMIN_PASSWORD), hint: "未設定" },
+    { name: "SESSION_SECRET", ok: secret.length >= 32, hint: secret ? `長度 ${secret.length} 字，需至少 32 字` : "未設定" },
+  ];
+}
+
 const dt = (d: Date) => d.toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
 
 export default async function ProjectsPage({ searchParams }: PageProps<"/projects">) {
@@ -35,9 +44,18 @@ export default async function ProjectsPage({ searchParams }: PageProps<"/project
       <section className="px-5 py-10">
         <div className="mx-auto flex max-w-3xl flex-col gap-6">
           {!ready && (
-            <p className="border border-dashed border-[var(--phase-r)] p-4 text-[0.85rem]">
-              專案功能尚未啟用：需於 Vercel 設定資料庫（DATABASE_URL）、管理密碼（ADMIN_PASSWORD）與 SESSION_SECRET。
-            </p>
+            <div className="flex flex-col gap-2 border border-dashed border-[var(--phase-r)] p-4 text-[0.85rem]">
+              <p>專案功能尚未啟用，Vercel 環境變數檢查結果（只檢查是否設定，不顯示內容）：</p>
+              <ul className="flex flex-col gap-1 font-mono text-[0.8rem]">
+                {setupChecks().map((c) => (
+                  <li key={c.name} className={c.ok ? "text-accent" : "text-[var(--phase-r)]"}>
+                    {c.ok ? "✓" : "✗"} {c.name}
+                    {!c.ok && `：${c.hint}`}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[0.75rem] text-muted">設定或修改環境變數後，須重新部署（Redeploy）才會生效。</p>
+            </div>
           )}
 
           {ready && (mine.length > 0 || session.admin) && (
