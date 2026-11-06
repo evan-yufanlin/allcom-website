@@ -16,13 +16,17 @@
     "verify:substation": "node --experimental-strip-types --no-warnings scripts/verify-substation.ts",
     "verify:telecom": "node --experimental-strip-types --no-warnings scripts/verify-telecom.ts",
     "verify:parking-vent": "node --experimental-strip-types --no-warnings scripts/verify-parking-vent.ts",
-    "verify:generator": "node --experimental-strip-types --no-warnings scripts/verify-generator.ts"
+    "verify:generator": "node --experimental-strip-types --no-warnings scripts/verify-generator.ts",
+    "verify:projects": "node --experimental-strip-types --no-warnings scripts/verify-projects.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
+    "jose": "^6.2.15",
     "next": "16.3.8",
+    "postgres": "^3.4.9",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
