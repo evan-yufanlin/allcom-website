@@ -13,7 +13,14 @@ export function dbConfigured() {
 
 function client(): Sql {
   if (!url) throw new Error("資料庫尚未設定（DATABASE_URL）");
-  g.__allcomSql ??= postgres(url, { max: 3, idle_timeout: 20, onnotice: () => {}, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" });
+  // Neon 預設之 DATABASE_URL 經 PgBouncer（交易模式）連線，不使用 prepared statements
+  g.__allcomSql ??= postgres(url, {
+    max: 3,
+    idle_timeout: 20,
+    prepare: !/-pooler\./.test(url),
+    onnotice: () => {},
+    ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require",
+  });
   return g.__allcomSql;
 }
 
