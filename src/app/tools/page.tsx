@@ -144,6 +144,12 @@ export default function ToolsPage() {
               </div>
             ))}
           </div>
+          <p className="mt-10 border-t border-line pt-4 text-[0.78rem] text-muted">
+            汎德內部：
+            <Link href="/projects" className="text-accent hover:underline">
+              專案檢討（需密碼）
+            </Link>
+          </p>
         </div>
       </section>
     </>
