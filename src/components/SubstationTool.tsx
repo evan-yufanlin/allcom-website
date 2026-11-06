@@ -137,6 +137,9 @@ function RowEditor({
   const [qty, setQty] = useState(1);
   const [custom, setCustom] = useState<Equip | null>(null);
   const setItems = (f: (items: ItemUI[]) => ItemUI[]) => update((r) => ({ ...r, items: f(r.items) }));
+  const setItem = (k: number, patch: Partial<Equip>) => setItems((items) => items.map((x) => (x.key === k ? { ...x, ...patch } : x)));
+  const [editing, setEditing] = useState<number | null>(null);
+  const editingItem = row.items.find((x) => x.key === editing);
   const shift = (k: number, d: number) =>
     setItems((items) => {
       const i = items.findIndex((x) => x.key === k);
@@ -174,11 +177,33 @@ function RowEditor({
 
       <div className="flex flex-wrap gap-1.5">
         {row.items.map((e, i) => (
-          <span key={e.key} className="flex items-center gap-1 border border-line bg-background py-0.5 pr-0.5 pl-2 text-[0.75rem]">
-            <span className="font-bold">{e.name}</span>
+          <span key={e.key} className="flex items-center gap-1 border border-line bg-background py-0.5 pr-0.5 pl-1 text-[0.75rem]">
+            <EquipPicker
+              item={e}
+              onPick={(lib) => {
+                if (lib) {
+                  const { id: _id, ...equip } = lib;
+                  void _id;
+                  setItem(e.key, { ...equip, height: lib.height });
+                } else {
+                  setItem(e.key, { group: "custom" });
+                  setEditing(e.key);
+                }
+              }}
+            />
             <span className="font-mono text-[0.68rem] text-muted">
               {e.width}×{e.depth}
             </span>
+            {e.group === "custom" && (
+              <button
+                type="button"
+                aria-label={`編輯 ${e.name}`}
+                onClick={() => setEditing(editing === e.key ? null : e.key)}
+                className="px-1 text-muted hover:text-accent"
+              >
+                ✎
+              </button>
+            )}
             {i > 0 && (
               <button type="button" aria-label="左移" onClick={() => shift(e.key, -1)} className="px-1 text-muted hover:text-accent">
                 ←
@@ -201,6 +226,21 @@ function RowEditor({
         ))}
         {row.items.length === 0 && <span className="text-[0.75rem] text-muted">尚無設備</span>}
       </div>
+
+      {editingItem && editingItem.group === "custom" && (
+        <div className="grid grid-cols-2 items-end gap-2 border-l-2 border-line pl-3 sm:grid-cols-[minmax(0,1fr)_6rem_6rem_8rem_auto]">
+          <Text label="自訂設備名稱" value={editingItem.name} onChange={(name) => setItem(editingItem.key, { name })} className="col-span-2 sm:col-span-1" />
+          <Num label="寬" unit="mm" integer value={editingItem.width} onChange={(width) => setItem(editingItem.key, { width: width ?? 0 })} />
+          <Num label="深" unit="mm" integer value={editingItem.depth} onChange={(depth) => setItem(editingItem.key, { depth: depth ?? 0 })} />
+          <Select<Door>
+            label="門"
+            value={editingItem.door}
+            onChange={(door) => setItem(editingItem.key, { door })}
+            options={(["single", "double", "none"] as const).map((d) => ({ value: d, label: DOOR_NAME[d] }))}
+          />
+          <SmallButton onClick={() => setEditing(null)}>完成</SmallButton>
+        </div>
+      )}
 
       <div className="grid grid-cols-[minmax(0,1fr)_5rem_auto] items-end gap-2 sm:grid-cols-[minmax(0,18rem)_5rem_auto_auto]">
         <Select<string>
@@ -248,6 +288,37 @@ function RowEditor({
         </div>
       )}
     </div>
+  );
+}
+
+/** 依名稱與尺寸對應標準設備；自訂或已修改尺寸者回傳 undefined */
+const libraryOf = (e: Equip) => (e.group === "custom" ? undefined : LIBRARY.find((l) => l.name === e.name && l.width === e.width && l.depth === e.depth));
+
+const PICK_GROUPS = (["panel", "oil", "cast"] as const).map((g) => ({ group: g, items: LIBRARY.filter((l) => l.group === g) }));
+
+/** 設備方塊上之規格下拉選單（依種類分組），選擇後原位替換 */
+function EquipPicker({ item, onPick }: { item: Equip; onPick: (lib: (typeof LIBRARY)[number] | null) => void }) {
+  const lib = libraryOf(item);
+  return (
+    <select
+      aria-label={`變更 ${item.name} 規格`}
+      value={lib?.id ?? "custom"}
+      onChange={(ev) => onPick(ev.target.value === "custom" ? null : LIBRARY.find((l) => l.id === ev.target.value)!)}
+      className="max-w-[11rem] border-0 bg-transparent py-0.5 pr-1 text-[0.75rem] font-bold outline-none hover:text-accent focus:text-accent"
+    >
+      {PICK_GROUPS.map((g) => (
+        <optgroup key={g.group} label={GROUP_NAME[g.group]}>
+          {g.items.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+      <optgroup label={GROUP_NAME.custom}>
+        <option value="custom">{lib ? "改為自訂設備…" : `自訂：${item.name || "（未命名）"}`}</option>
+      </optgroup>
+    </select>
   );
 }
 
