@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PASSWORD_MIN, hashPassword, safeEqual, verifyPassword } from "@/lib/projects/password";
 import { CODE_PATTERN } from "@/lib/projects/session";
-import { SUBSTATION_SCHEMA, parseSubstationInput, summarizeSubstation } from "@/lib/projects/tools";
+import { REVIEW_HANDLERS, isProjectTool } from "@/lib/projects/tools";
 import { clearFailures, getSession, lockedMinutes, recordFailure, setSession } from "@/server/auth";
 import {
   getPasswordHash,
@@ -133,17 +133,21 @@ export type SaveResult =
   | { ok: false; conflict: true; updatedAt: string; updatedBy: string }
   | { ok: false; conflict: false; error: string };
 
-export async function saveSubstationReview(
+export async function saveProjectReview(
   code: string,
+  tool: string,
   input: unknown,
   updatedBy: string,
   expected: string | null,
   force: boolean,
 ): Promise<SaveResult> {
   await requireProject(code);
-  const parsed = parseSubstationInput(input);
+  if (!isProjectTool(tool)) return { ok: false, conflict: false, error: "此工具尚未開放存入專案" };
+  const h = REVIEW_HANDLERS[tool];
+  const parsed = h.parse(input);
   if (!parsed) return { ok: false, conflict: false, error: "資料格式不符，未儲存" };
-  const r = await upsertReview(code, "substation", SUBSTATION_SCHEMA, parsed, summarizeSubstation(parsed), updatedBy.trim().slice(0, 40), expected, force);
+  const summary = h.summarize(parsed as never);
+  const r = await upsertReview(code, tool, h.schema, parsed, summary, updatedBy.trim().slice(0, 40), expected, force);
   revalidatePath(`/projects/${code}`);
   return r.ok
     ? { ok: true, updatedAt: r.updatedAt.toISOString() }
