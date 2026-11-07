@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PdfSaveButton from "@/components/PdfSaveButton";
+import ProjectSaveBar, { type ProjectContext } from "@/components/ProjectSaveBar";
 import { Card, Check as CheckBox, Num, RemoveButton, Select, SmallButton, Text } from "@/components/ToolFields";
 import { dateStamp } from "@/lib/dateStamp";
 import {
@@ -27,16 +28,15 @@ import {
   FIXTURES,
   FIXTURE_BUILDINGS,
   JURISDICTION_NAME,
-  NEW_TAIPEI_RULES,
   PARK_HEADCOUNT,
   PER_CAPITA,
   SOURCES,
   TAIPEI_XIZHI_VILLAGES,
   TONGLUO_FACTOR,
-  areasOf,
   districtsOf,
   type Jurisdiction,
 } from "@/lib/waterSupplyData";
+import { GENERAL_AREA, NON_RESIDENTIAL, OTHER_DISTRICT, deriveWaterSupply, type RowForm, type WaterSupplyForm } from "@/lib/waterSupplyForm";
 
 // ---- 畫面狀態（在計算輸入上加 id 與選單狀態） ----
 
@@ -50,10 +50,6 @@ type SystemUI = Omit<SystemInput, "rows" | "others" | "tanks"> & {
   tanks: TankUI[];
   tongluo: boolean;
 };
-
-const OTHER_DISTRICT = "其他行政區";
-const GENERAL_AREA = "general";
-const NON_RESIDENTIAL = "non-residential";
 
 let nextId = 1;
 const newId = () => nextId++;
@@ -109,73 +105,67 @@ function peopleRowUI(tongluo: boolean): RowUI {
   };
 }
 
+// ---- 專案存檔格式（WaterSupplyForm）與畫面狀態互轉 ----
+
+function systemFromForm(s: WaterSupplyForm["systems"][number]): SystemUI {
+  return {
+    ...s,
+    id: newId(),
+    rows: s.rows.map((r) => ({ ...r, id: newId() })),
+    others: s.others.map((o) => ({ ...o, id: newId() })),
+    tanks: s.tanks.map((t) => ({ ...t, id: newId() })),
+  };
+}
+
+const stripId = <T extends { id: number }>({ id: _id, ...rest }: T): Omit<T, "id"> => (void _id, rest);
+
+function systemToForm(s: SystemUI): WaterSupplyForm["systems"][number] {
+  const { id: _id, rows, others, tanks, ...rest } = s;
+  void _id;
+  return { ...rest, rows: rows.map(stripId) as RowForm[], others: others.map(stripId) as OtherUse[], tanks: tanks.map(stripId) as Tank[] };
+}
+
 // ---- 主元件 ----
 
-export default function WaterSupplyTool() {
-  const [projectName, setProjectName] = useState("");
-  const [county, setCounty] = useState("臺北市");
-  const [district, setDistrict] = useState(OTHER_DISTRICT);
-  const [partialTaiwan, setPartialTaiwan] = useState(false);
-  const [xizhiVillage, setXizhiVillage] = useState("other");
-  const [areaKey, setAreaKey] = useState(GENERAL_AREA);
-  const [highlandDays, setHighlandDays] = useState<number | null>(1.5);
-  const [legacy, setLegacy] = useState(false);
-  const [systems, setSystems] = useState<SystemUI[]>(() => [newSystem("生活用水")]);
+export default function WaterSupplyTool({ project, initial }: { project?: ProjectContext; initial?: WaterSupplyForm | null } = {}) {
+  const [projectName, setProjectName] = useState(() => initial?.projectName || project?.name || "");
+  const [county, setCounty] = useState(initial?.county ?? "臺北市");
+  const [district, setDistrict] = useState(initial?.district ?? OTHER_DISTRICT);
+  const [partialTaiwan, setPartialTaiwan] = useState(initial?.partialTaiwan ?? false);
+  const [xizhiVillage, setXizhiVillage] = useState(initial?.xizhiVillage ?? "other");
+  const [areaKey, setAreaKey] = useState(initial?.areaKey ?? GENERAL_AREA);
+  const [highlandDays, setHighlandDays] = useState<number | null>(initial ? initial.highlandDays : 1.5);
+  const [legacy, setLegacy] = useState(initial?.legacy ?? false);
+  const [systems, setSystems] = useState<SystemUI[]>(() => (initial ? initial.systems.map(systemFromForm) : [newSystem("生活用水")]));
   const [activeId, setActiveId] = useState(() => systems[0].id);
-  const [plan, setPlan] = useState<ProjectInput["plan"]>({
-    manual: false,
-    planned: null,
-    prior: 0,
-    basis: "planned",
-    otherStorage: 0,
-  });
+  const [plan, setPlan] = useState<ProjectInput["plan"]>(
+    () =>
+      initial?.plan ?? {
+        manual: false,
+        planned: null,
+        prior: 0,
+        basis: "planned",
+        otherStorage: 0,
+      },
+  );
   const [today] = useState(() => new Date());
 
-  // 轄區判定
-  const rule = county === "新北市" ? NEW_TAIPEI_RULES[district] : undefined;
-  const jurisdiction: Jurisdiction =
-    county === "臺北市"
-      ? "taipei"
-      : rule?.kind === "taipei"
-        ? "taipei"
-        : rule?.kind === "taipei-partial"
-          ? partialTaiwan
-            ? "taiwan"
-            : "taipei"
-          : rule?.kind === "xizhi"
-            ? xizhiVillage === "other"
-              ? "taiwan"
-              : "taipei"
-            : "taiwan";
-  const j = jurisdiction;
-
-  const districts = districtsOf(county);
-  const areas = j === "taiwan" ? areasOf(county, district) : [];
-  const selectedArea = areaKey.startsWith("area-") ? areas[Number(areaKey.slice(5))] : undefined;
-
-  let baselineDays: number | null = null;
-  let baselineLabel = "";
-  if (j === "taiwan" && !legacy && areaKey !== NON_RESIDENTIAL) {
-    if (selectedArea) {
-      baselineDays = selectedArea.days ?? highlandDays ?? null;
-      baselineLabel = `${selectedArea.county}${selectedArea.district} ${selectedArea.places}（${selectedArea.reason}${
-        selectedArea.days === null ? "，附件九高地供水地區，日數依審查訂定" : ""
-      }）`;
-    } else {
-      baselineDays = 1;
-      baselineLabel = "一般供水區";
-    }
-  }
-
-  const input: ProjectInput = {
-    jurisdiction: j,
+  // 轄區判定與計算輸入（與專案存檔之伺服器重算共用）
+  const form: WaterSupplyForm = {
+    projectName,
     county,
-    baselineDays,
-    baselineLabel,
-    legacyUrbanRenewal: j === "taipei" && legacy,
-    systems,
+    district,
+    partialTaiwan,
+    xizhiVillage,
+    areaKey,
+    highlandDays,
+    legacy,
+    systems: systems.map(systemToForm),
     plan,
   };
+  const { jurisdiction: j, rule, areas, selectedArea, baselineDays, input } = deriveWaterSupply(form);
+  const districts = districtsOf(county);
+
   const result = calculateWaterSupply(input);
   // 另一轄區以相同輸入估算，供容量上下限對照（每人用水量、安全係數依該轄區）
   const altJ: Jurisdiction = j === "taiwan" ? "taipei" : "taiwan";
@@ -208,6 +198,7 @@ export default function WaterSupplyTool() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      {project && <ProjectSaveBar project={project} tool="water-supply" input={form} />}
       {/* 基本資料 */}
       <Card title="① 基本資料與供水轄區">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

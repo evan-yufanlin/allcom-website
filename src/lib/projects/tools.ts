@@ -1,7 +1,10 @@
 // 專案可接入之空間檢討工具（docs/projects-spec.md 第 4 節，依階段陸續開放）。
 import { calculateSubstation, type Clearances, type Door, type Equip, type Facing, type Group } from "../substation.ts";
+import { calculateWaterSupply } from "../waterSupply.ts";
+import { JURISDICTION_NAME, type Jurisdiction } from "../waterSupplyData.ts";
+import { deriveWaterSupply, parseWaterSupplyForm, type WaterSupplyForm } from "../waterSupplyForm.ts";
 
-export type ProjectToolSlug = "substation";
+export type ProjectToolSlug = "substation" | "water-supply";
 
 export interface ProjectToolInfo {
   slug: string;
@@ -14,7 +17,7 @@ export interface ProjectToolInfo {
 
 export const PROJECT_TOOLS: ProjectToolInfo[] = [
   { slug: "substation", name: "自設變電站空間檢討", href: "/tools/substation", ready: true },
-  { slug: "water-supply", name: "給水水理計算（自來水水箱）", href: "/tools/water-supply", ready: false },
+  { slug: "water-supply", name: "給水水理計算（自來水水箱）", href: "/tools/water-supply", ready: true },
   { slug: "fire-water", name: "消防水池容量檢討", href: "/tools/fire-water", ready: false },
   { slug: "telecom", name: "電信室空間檢討", href: "/tools/telecom", ready: false },
   { slug: "generator", name: "緊急發電機室", href: "/tools/generator", ready: false },
@@ -72,10 +75,48 @@ export function summarizeSubstation(input: SubstationInput): SubstationSummary {
   return { length: r.length, depth: r.depth, area: Math.round(r.area * 10) / 10 };
 }
 
+// ---- 給水水理計算：輸入格式 v1（WaterSupplyForm，src/lib/waterSupplyForm.ts） ----
+
+export const WATER_SUPPLY_SCHEMA = 1;
+
+export interface WaterSupplySummary {
+  jurisdiction: Jurisdiction;
+  /** 一日用水量 V（m³） */
+  v: number;
+  /** 一日設計用水量 Vd（m³，V × 安全係數） */
+  vd: number;
+  /** 建議總表口徑（mm） */
+  meterSize: number | null;
+}
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+export function summarizeWaterSupply(f: WaterSupplyForm): WaterSupplySummary {
+  const { input } = deriveWaterSupply(f);
+  const r = calculateWaterSupply(input);
+  return { jurisdiction: input.jurisdiction, v: r2(r.meter.v), vd: r2(r.meter.vd), meterSize: r.meter.size };
+}
+
+// ---- 工具登錄：存檔時檢查格式與計算摘要 ----
+
+export const REVIEW_HANDLERS: Record<ProjectToolSlug, { schema: number; parse: (v: unknown) => unknown | null; summarize: (v: never) => unknown }> = {
+  substation: { schema: SUBSTATION_SCHEMA, parse: parseSubstationInput, summarize: summarizeSubstation },
+  "water-supply": { schema: WATER_SUPPLY_SCHEMA, parse: parseWaterSupplyForm, summarize: summarizeWaterSupply },
+};
+
+export const isProjectTool = (t: string): t is ProjectToolSlug => Object.hasOwn(REVIEW_HANDLERS, t);
+
+const zh = (n: number) => n.toLocaleString("zh-TW", { maximumFractionDigits: 2 });
+
 export const summaryText = (tool: string, s: unknown): string => {
-  if (tool === "substation" && s && typeof s === "object") {
+  if (!s || typeof s !== "object") return "";
+  if (tool === "substation") {
     const x = s as SubstationSummary;
-    return `室內淨長 ${x.length.toLocaleString("zh-TW")} × 淨深 ${x.depth.toLocaleString("zh-TW")} mm，淨面積 ${x.area} m²`;
+    return `室內淨長 ${zh(x.length)} × 淨深 ${zh(x.depth)} mm，淨面積 ${x.area} m²`;
+  }
+  if (tool === "water-supply") {
+    const x = s as WaterSupplySummary;
+    return `${JURISDICTION_NAME[x.jurisdiction] ?? ""}｜一日用水量 V ＝ ${zh(x.v)} m³，一日設計用水量 Vd ＝ ${zh(x.vd)} m³，總表口徑 ${x.meterSize ? `${x.meterSize} mm` : "—"}`;
   }
   return "";
 };

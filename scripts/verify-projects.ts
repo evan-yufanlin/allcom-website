@@ -2,8 +2,10 @@
 // 執行：npm run verify:projects
 import { hashPassword, safeEqual, verifyPassword } from "../src/lib/projects/password.ts";
 import { SESSION_DAYS, canAccess, readSession, signSession } from "../src/lib/projects/session.ts";
-import { parseSubstationInput, summarizeSubstation } from "../src/lib/projects/tools.ts";
+import { parseSubstationInput, summarizeSubstation, summarizeWaterSupply, summaryText } from "../src/lib/projects/tools.ts";
 import { TEMPLATES } from "../src/lib/substation.ts";
+import { calculateWaterSupply } from "../src/lib/waterSupply.ts";
+import { deriveWaterSupply, parseWaterSupplyForm, type WaterSupplyForm } from "../src/lib/waterSupplyForm.ts";
 
 let failed = 0;
 function check(label: string, ok: boolean) {
@@ -49,6 +51,59 @@ console.log("\n自設變電站存檔格式");
   check("缺通道條件拒收", parseSubstationInput({ ...input, clearances: {} }) === null);
   check("設備尺寸非數字拒收", parseSubstationInput({ ...input, rows: [{ facing: "down", items: [{ name: "X", group: "panel", width: "1", depth: 1, door: "single" }] }] }) === null);
   check("不明欄位捨棄", !("evil" in parseSubstationInput({ ...input, evil: 1 })!));
+}
+
+console.log("\n給水水理計算存檔格式");
+{
+  // 台水案例一（scripts/verify-water.ts）：科學園區廠房（銅鑼園區）生活用水
+  const sys = {
+    name: "生活用水",
+    suites: 0,
+    houses: 0,
+    townhouses: 0,
+    perSuite: 2,
+    perHouse: 3,
+    perTownhouse: 6,
+    v2Factor: 1.1,
+    tongluo: true,
+    rows: [{ kind: "people" as const, label: "員工", preset: "office", building: 0, people: 1254, litres: 19.5 }],
+    others: [],
+    tanks: [
+      { kind: "pool" as const, label: "水池", length: 4.95, width: 2.45, depth: 2.7, count: 2 },
+      { kind: "tower" as const, label: "水塔", length: 3.6, width: 2.95, depth: 1.5, count: 2 },
+    ],
+  };
+  const form: WaterSupplyForm = {
+    projectName: "測試",
+    county: "苗栗縣",
+    district: "其他行政區",
+    partialTaiwan: false,
+    xizhiVillage: "other",
+    areaKey: "general",
+    highlandDays: 1.5,
+    legacy: false,
+    systems: [sys],
+    plan: { manual: true, planned: null, prior: 0, basis: "vd", otherStorage: 0 },
+  };
+  const parsed = parseWaterSupplyForm(JSON.parse(JSON.stringify(form)));
+  check("台水案例一可存檔", parsed !== null);
+  const sum = summarizeWaterSupply(parsed!);
+  check(`載入後計算一致：${sum.jurisdiction}，V ${sum.v}、Vd ${sum.vd}、總表 ${sum.meterSize} mm`, sum.jurisdiction === "taiwan" && sum.v === 26.9 && sum.vd === 32.28 && sum.meterSize === 40);
+  const calc = (f: WaterSupplyForm) => {
+    const { input: _i, ...r } = calculateWaterSupply(deriveWaterSupply(f).input);
+    return (void _i, r);
+  };
+  const direct = calc(form);
+  check("存檔前後計算結果相同（含 3 日檢討）", JSON.stringify(direct) === JSON.stringify(calc(parsed!)) && direct.plan.ok);
+  check(`摘要文字：${summaryText("water-supply", sum)}`, summaryText("water-supply", sum).includes("26.9"));
+  const tp = summarizeWaterSupply({ ...form, county: "臺北市" });
+  check("臺北市判定北水", tp.jurisdiction === "taipei");
+  check("新北市新店區判定北水", deriveWaterSupply({ ...form, county: "新北市", district: "新店區" }).jurisdiction === "taipei");
+  check("縣市不在清單拒收", parseWaterSupplyForm({ ...form, county: "東京" }) === null);
+  check("系統數 0 拒收", parseWaterSupplyForm({ ...form, systems: [] }) === null);
+  check("用水列種類不明拒收", parseWaterSupplyForm({ ...form, systems: [{ ...sys, rows: [{ ...sys.rows[0], kind: "x" }] }] }) === null);
+  check("水池尺寸為負拒收", parseWaterSupplyForm({ ...form, systems: [{ ...sys, tanks: [{ ...sys.tanks[0], length: -1 }] }] }) === null);
+  check("不明欄位捨棄", !("evil" in parseWaterSupplyForm({ ...form, evil: 1 })!) && !("evil" in parseWaterSupplyForm({ ...form, systems: [{ ...sys, evil: 1 }] })!.systems[0]));
 }
 
 console.log(failed ? `\n${failed} 項不符` : "\n全部吻合");
