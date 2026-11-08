@@ -1,6 +1,6 @@
 // 自設變電站空間檢討驗算：以 docs/substation-spec.md 第 5 節之案例（文升）核對計算結果。
 // 執行：npm run verify:substation
-import { DEFAULT_CLEARANCES, TEMPLATES, calculateSubstation, libraryItem } from "../src/lib/substation.ts";
+import { DEFAULT_CLEARANCES, LIBRARY, TEMPLATES, calculateSubstation, libraryItem } from "../src/lib/substation.ts";
 
 let failed = 0;
 
@@ -9,6 +9,8 @@ function eq(label: string, actual: unknown, expected: unknown) {
   if (!ok) failed++;
   console.log(`${ok ? "✓" : "✗"} ${label}: ${String(actual)}（預期 ${String(expected)}）`);
 }
+
+const check = (label: string, ok: boolean) => eq(label, ok, true);
 
 const tpl = (id: string) => TEMPLATES.find((t) => t.id === id)!;
 
@@ -46,6 +48,17 @@ console.log("\nMOF 盤前工作空間（第 1009 條 1.5 m）");
   const three = tpl("three");
   const f = calculateSubstation(three.rows, { ...three.clearances, faceToFace: 1400 });
   eq("面對面 1,400（第1列含 MOF）提醒", f.warnings.filter((w) => w.includes("第1列 MOF")).length, 1);
+}
+
+console.log("\n低壓變壓器設備庫（士林型錄 P.7～P.10）");
+{
+  const lv = LIBRARY.filter((l) => l.group === "lv");
+  check(`低壓變壓器 4 組 × 15 級 ＝ ${lv.length}`, lv.length === 60);
+  const it = LIBRARY.find((l) => l.id === "lv-cast-ip20-100");
+  check(`低壓模鑄 IP20 100kVA：${it?.width} × ${it?.depth}，高 ${it?.height}，${it?.door}`, it?.width === 940 && it.depth === 450 && it.height === 1135 && it.door === "none");
+  const d = LIBRARY.find((l) => l.id === "lv-dry-ip00-250");
+  check(`低壓乾式 IP00 250kVA：${d?.width} × ${d?.depth}，高 ${d?.height}`, d?.width === 980 && d.depth === 550 && d.height === 1090);
+  check("名稱不重複", new Set(LIBRARY.map((l) => l.name)).size === LIBRARY.length);
 }
 
 console.log("\n其他規則");

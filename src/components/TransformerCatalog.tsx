@@ -6,10 +6,12 @@ import {
   CAPACITIES,
   CATALOGS,
   KIND_NAME,
+  PRIMARY_NAME,
   ROWS,
   SECONDARY_NAME,
   SERIES,
   type Kind,
+  type Primary,
   type Secondary,
   type SeriesId,
   type SeriesInfo,
@@ -33,14 +35,33 @@ function weightOf(r: TransformerRow, form: OilForm) {
 
 export default function TransformerCatalog() {
   const [kva, setKva] = useState(1000);
+  const [primary, setPrimary] = useState<"all" | Primary>("hv");
   const [secondary, setSecondary] = useState<Secondary>("380Y");
   const [kind, setKind] = useState<"all" | Kind>("all");
   const [picked, setPicked] = useState<SeriesId[]>([]);
   const [view, setView] = useState<View>("series");
   const [form, setForm] = useState<OilForm>("standard");
 
-  const series = SERIES.filter((s) => (kind === "all" || s.kind === kind) && (picked.length === 0 || picked.includes(s.id)));
+  const visible = (s: SeriesInfo) =>
+    (kind === "all" || s.kind === kind) && (primary === "all" || s.primary === primary) && ROWS.some((r) => r.series === s.id && r.secondary === secondary);
+  const series = SERIES.filter((s) => visible(s) && (picked.length === 0 || picked.includes(s.id)));
   const rowsOf = (s: SeriesInfo) => ROWS.filter((r) => r.series === s.id && r.secondary === secondary);
+
+  function changePrimary(p: "all" | Primary) {
+    setPrimary(p);
+    setPicked([]);
+    // 低壓機種最大 250 kVA；高壓沿用原選擇
+    if (p === "lv" && kva > 250) setKva(100);
+  }
+  function changeSecondary(v: Secondary) {
+    setSecondary(v);
+    setPicked([]);
+    // 208Y/120V 僅低壓機種
+    if (v === "208Y") {
+      if (primary === "hv") setPrimary("lv");
+      if (kva > 250) setKva(100);
+    }
+  }
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -54,20 +75,21 @@ export default function TransformerCatalog() {
             onChange={(v) => setKva(Number(v))}
             options={CAPACITIES.map((c) => ({ value: String(c), label: `${n(c)} kVA` }))}
           />
-          <label className="flex min-w-0 flex-col gap-1">
-            <span className="text-[0.72rem] text-muted">② 一次側</span>
-            <select className="w-full min-w-0 border border-line bg-background px-2 py-1.5 text-[0.85rem] outline-none focus:border-accent" defaultValue="hv">
-              <option value="hv">高壓 22.8/11.4 kV</option>
-              <option value="lv" disabled>
-                低壓（第二版提供）
-              </option>
-            </select>
-          </label>
+          <Select<"all" | Primary>
+            label="② 一次側"
+            value={primary}
+            onChange={changePrimary}
+            options={[
+              { value: "hv", label: PRIMARY_NAME.hv },
+              { value: "lv", label: PRIMARY_NAME.lv },
+              { value: "all", label: "全部" },
+            ]}
+          />
           <Select<Secondary>
             label="③ 二次側"
             value={secondary}
-            onChange={setSecondary}
-            options={(["380Y", "220"] as const).map((s) => ({ value: s, label: SECONDARY_NAME[s] }))}
+            onChange={changeSecondary}
+            options={(["380Y", "220", "208Y"] as const).map((s) => ({ value: s, label: `${SECONDARY_NAME[s]}${s === "208Y" ? "（低壓機種）" : ""}` }))}
           />
         </div>
         <div className="flex flex-col gap-2.5 border-t border-line pt-3">
@@ -84,6 +106,7 @@ export default function TransformerCatalog() {
                 { value: "all", label: "全部" },
                 { value: "oil", label: "油浸式" },
                 { value: "cast", label: "模鑄式" },
+                { value: "dry", label: "乾式" },
               ]}
             />
             <Select<OilForm>
@@ -97,7 +120,7 @@ export default function TransformerCatalog() {
             />
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-            {SERIES.filter((s) => kind === "all" || s.kind === kind).map((s) => (
+            {SERIES.filter(visible).map((s) => (
               <CheckBox
                 key={s.id}
                 checked={picked.includes(s.id)}
@@ -140,7 +163,10 @@ export default function TransformerCatalog() {
           ))}
         </div>
       ) : (
-        <Compare series={series} secondary={secondary} kva={kva} form={form} />
+        <Compare series={series} primary={primary} secondary={secondary} kva={kva} form={form} />
+      )}
+      {series.length === 0 && (
+        <p className="border border-dashed border-line p-5 text-center text-[0.85rem] text-muted">所選一次側、二次側與型式無對應機種</p>
       )}
 
       <Notes />
@@ -156,7 +182,7 @@ function Source() {
         {CATALOGS.oil}；{CATALOGS.cast}
       </span>
       <span className="text-[0.75rem] text-muted">
-        數值依型錄 2019.05 版整理，最新規格以廠商為準。本版收錄一次側高壓（22.8/11.4 kV）機種；3～100 kVA 小容量及低壓型號將於第二版提供。
+        數值依型錄 2019.05 版整理，最新規格以廠商為準。收錄一次側高壓（22.8/11.4 kV）機種，及一次側低壓之低壓模鑄式、低壓乾式（3～250 kVA，含 208Y/120V）與油浸式 DI 系列小容量。
       </span>
     </div>
   );
@@ -166,7 +192,9 @@ function SeriesHead({ s }: { s: SeriesInfo }) {
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex flex-wrap items-baseline gap-x-2.5">
-        <span className="bg-accent-soft px-2 py-0.5 font-mono text-[0.62rem] text-accent">{KIND_NAME[s.kind]}</span>
+        <span className="bg-accent-soft px-2 py-0.5 font-mono text-[0.62rem] text-accent">
+          {KIND_NAME[s.kind]}・{s.primary === "hv" ? "高壓" : "低壓"}
+        </span>
         <h2 className="text-[1rem] font-extrabold">{s.name}</h2>
       </div>
       <span className="text-[0.7rem] text-muted">外形：{s.sizeNote}</span>
@@ -177,16 +205,17 @@ function SeriesHead({ s }: { s: SeriesInfo }) {
 
 function SeriesTable({ s, rows, kva, form }: { s: SeriesInfo; rows: TransformerRow[]; kva: number; form: OilForm }) {
   const oil = s.kind === "oil";
+  const hasDuct = rows.some((r) => r.ductSize);
   const has = rows.some((r) => r.kva === kva);
   const heads = [
     "容量 kVA",
-    `外形 寬×深×高（mm）${oil ? (form === "duct" ? "・導口型" : "・標準型") : ""}`,
+    `外形 寬×深×高（mm）${oil && hasDuct ? (form === "duct" ? "・導口型" : "・標準型") : s.primary === "lv" && !oil ? "・IP00 本體" : ""}`,
     "重量 kg",
     "效率 %",
     "阻抗 %",
     "噪音 dB",
     "全損失 W",
-    oil ? "油量 L" : "配電箱 寬×深×高（mm）・重量 kg",
+    oil ? "油量 L" : s.primary === "lv" ? "外箱 IP20 寬×深×高（mm）・重量 kg" : "配電箱 寬×深×高（mm）・重量 kg",
     "型錄頁碼",
   ];
 
@@ -240,7 +269,19 @@ function SeriesTable({ s, rows, kva, form }: { s: SeriesInfo; rows: TransformerR
   );
 }
 
-function Compare({ series, secondary, kva, form }: { series: SeriesInfo[]; secondary: Secondary; kva: number; form: OilForm }) {
+function Compare({
+  series,
+  primary,
+  secondary,
+  kva,
+  form,
+}: {
+  series: SeriesInfo[];
+  primary: "all" | Primary;
+  secondary: Secondary;
+  kva: number;
+  form: OilForm;
+}) {
   const cols = series
     .map((s) => ({ s, r: ROWS.find((r) => r.series === s.id && r.secondary === secondary && r.kva === kva) }))
     .filter((c): c is { s: SeriesInfo; r: TransformerRow } => c.r !== undefined);
@@ -250,7 +291,7 @@ function Compare({ series, secondary, kva, form }: { series: SeriesInfo[]; secon
     return <p className="border border-dashed border-line p-5 text-center text-[0.85rem] text-muted">所選條件無 {n(kva)} kVA 機種</p>;
 
   const items: { label: string; get: (c: { s: SeriesInfo; r: TransformerRow }) => React.ReactNode }[] = [
-    { label: "型式", get: (c) => KIND_NAME[c.s.kind] },
+    { label: "型式", get: (c) => `${KIND_NAME[c.s.kind]}・${c.s.primary === "hv" ? "高壓" : "低壓"}` },
     { label: "外形 寬×深×高（mm）", get: (c) => dims(sizeOf(c.r, form)) },
     {
       label: "重量 kg",
@@ -268,18 +309,18 @@ function Compare({ series, secondary, kva, form }: { series: SeriesInfo[]; secon
     { label: "無載電流 %", get: (c) => opt(c.r.nlc) },
     { label: "油量 L", get: (c) => (c.s.kind === "oil" ? opt(c.r.oil) : "—") },
     {
-      label: "配電箱 寬×深×高（mm）",
+      label: "配電箱／外箱 IP20 寬×深×高（mm）",
       get: (c) =>
         c.s.kind === "oil" ? "—" : c.r.box ? dims(c.r.box) : <span className="font-sans text-muted">型錄未列，請洽廠商</span>,
     },
-    { label: "配電箱重量 kg", get: (c) => (c.r.boxWeight ? n(c.r.boxWeight) : "—") },
+    { label: "配電箱／外箱重量 kg", get: (c) => (c.r.boxWeight ? n(c.r.boxWeight) : "—") },
     { label: "型錄頁碼", get: (c) => <span className="font-sans text-muted">{c.r.pages}</span> },
   ];
 
   return (
     <section className="flex flex-col gap-2">
       <h2 className="text-[1rem] font-extrabold">
-        {n(kva)} kVA・高壓 22.8/11.4 kV → {SECONDARY_NAME[secondary]}
+        {n(kva)} kVA・{primary === "all" ? "一次側不限" : PRIMARY_NAME[primary]} → {SECONDARY_NAME[secondary]}
       </h2>
       {cols.length > 1 && <span className="text-[0.7rem] text-muted sm:hidden">共 {cols.length} 種型式，表格可左右滑動 →</span>}
       <div className="overflow-x-auto">
@@ -335,6 +376,8 @@ function Notes() {
         <li>油浸式型錄未列各機種噪音值；模鑄式型錄未列效率。型錄未列者以「—」表示。</li>
         <li>油浸式阻抗電壓型錄以範圍表示；特性值公差依 IEC、CNS 規定。</li>
         <li>DI 系列與 DH 系列之特性值型錄共用同一張特性表（型錄 P.10）。</li>
+        <li>低壓模鑄式、低壓乾式：外形「本體」為無外箱 IP00，「外箱」為附外箱 IP20；L 為長、W 為寬、H 為最高處。阻抗電壓型錄依容量區段標示；噪音依型錄表一（0～50 kVA 50 dB、51～150 kVA 55 dB、151～250 kVA 58 dB）。</li>
+        <li>低壓模鑄式、低壓乾式型錄未列效率與損失；油浸式 DI 小容量僅 208Y/120V（3～15 kVA）及 22.8 kV 機種列有特性值。</li>
         <li>變電站空間檢討時，另應考慮維修通道、對地絕緣距離及通風等需求。</li>
       </ul>
     </section>

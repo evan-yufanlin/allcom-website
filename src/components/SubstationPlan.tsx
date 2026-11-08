@@ -1,4 +1,24 @@
-import { FILL, STROKE, type Drawing } from "@/lib/substationDrawing";
+import { FILL, STROKE, type DrawRect, type Drawing } from "@/lib/substationDrawing";
+
+/** 設備名稱（可分行、縮小）與尺寸 */
+function Label({ r, u }: { r: DrawRect; u: number }) {
+  const k = r.scale ?? 1;
+  const lines = r.lines ?? [r.name!];
+  const lh = u * 0.85 * 1.1 * k;
+  const top = r.y + r.h / 2 - ((lines.length - 1) * lh) / 2 - u * 0.15 * k;
+  return (
+    <>
+      {lines.map((l, i) => (
+        <text key={i} x={r.x + r.w / 2} y={top + i * lh} textAnchor="middle" fontSize={u * 0.85 * k} fontWeight={700} fill="#14141F">
+          {l}
+        </text>
+      ))}
+      <text x={r.x + r.w / 2} y={top + (lines.length - 1) * lh + u * 1.05 * k} textAnchor="middle" fontSize={u * 0.6 * k} fill="#5C5F72">
+        {r.sub}
+      </text>
+    </>
+  );
+}
 
 const SIZE = { s: 0.75, m: 0.95, l: 1.2 };
 
@@ -18,16 +38,7 @@ export default function SubstationPlan({ d }: { d: Drawing }) {
             stroke={STROKE[r.group]}
             strokeWidth={r.group === "room" ? u * 0.18 : u * 0.06}
           />
-          {r.name && (
-            <>
-              <text x={r.x + r.w / 2} y={r.y + r.h / 2 - u * 0.15} textAnchor="middle" fontSize={u * 0.85} fontWeight={700} fill="#14141F">
-                {r.name}
-              </text>
-              <text x={r.x + r.w / 2} y={r.y + r.h / 2 + u * 0.9} textAnchor="middle" fontSize={u * 0.6} fill="#5C5F72">
-                {r.sub}
-              </text>
-            </>
-          )}
+          {r.name && <Label r={r} u={u} />}
         </g>
       ))}
       {d.lines.map((l, i) => (

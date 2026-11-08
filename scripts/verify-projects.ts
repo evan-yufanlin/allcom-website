@@ -51,6 +51,8 @@ console.log("\n自設變電站存檔格式");
   check("缺通道條件拒收", parseSubstationInput({ ...input, clearances: {} }) === null);
   check("設備尺寸非數字拒收", parseSubstationInput({ ...input, rows: [{ facing: "down", items: [{ name: "X", group: "panel", width: "1", depth: 1, door: "single" }] }] }) === null);
   check("不明欄位捨棄", !("evil" in parseSubstationInput({ ...input, evil: 1 })!));
+  const lv = { name: "低壓模鑄 IP20 100kVA", group: "lv", width: 940, depth: 450, height: 1135, door: "none" };
+  check("低壓變壓器可存檔", parseSubstationInput({ ...input, rows: [{ facing: "down", items: [lv] }] })?.rows[0].items[0].group === "lv");
 }
 
 console.log("\n給水水理計算存檔格式");
