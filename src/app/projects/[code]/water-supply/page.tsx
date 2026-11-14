@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import WaterSupplyTool from "@/components/WaterSupplyTool";
 import { parseWaterSupplyForm } from "@/lib/waterSupplyForm";
 import { getSession } from "@/server/auth";
-import { getProject, getReview } from "@/server/projects";
+import { getProject, getReview, versionCounts } from "@/server/projects";
 
 export default async function ProjectWaterSupplyPage({ params }: PageProps<"/projects/[code]/water-supply">) {
   const code = decodeURIComponent((await params).code);
@@ -11,7 +11,7 @@ export default async function ProjectWaterSupplyPage({ params }: PageProps<"/pro
   if (!session.admin && !session.projects.includes(code)) redirect(`/projects?code=${encodeURIComponent(code)}`);
   const project = await getProject(code);
   if (!project) notFound();
-  const review = await getReview(code, "water-supply");
+  const [review, counts] = await Promise.all([getReview(code, "water-supply"), versionCounts(code)]);
   const initial = review ? parseWaterSupplyForm(review.input) : null;
 
   return (
@@ -32,6 +32,7 @@ export default async function ProjectWaterSupplyPage({ params }: PageProps<"/pro
             name: project.name,
             savedAt: review?.updated_at.toISOString() ?? null,
             savedBy: review?.updated_by ?? "",
+            versions: counts.get("water-supply") ?? 0,
           }}
           initial={initial}
         />

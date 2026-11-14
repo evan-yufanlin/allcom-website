@@ -10,10 +10,14 @@ import {
   getPasswordHash,
   insertProject,
   removeProject,
+  removeVersion,
+  restoreVersion,
+  saveReviewAndVersion,
   setPasswordHash,
   updateProjectFields,
   upsertReview,
   type ProjectFields,
+  VERSION_LIMIT,
 } from "@/server/projects";
 
 export interface FormState {
@@ -152,4 +156,57 @@ export async function saveProjectReview(
   return r.ok
     ? { ok: true, updatedAt: r.updatedAt.toISOString() }
     : { ok: false, conflict: true, updatedAt: r.updatedAt.toISOString(), updatedBy: r.updatedBy };
+}
+
+// ---- 版次（docs/project-versions-spec.md） ----
+
+export type VersionResult =
+  | { ok: true; updatedAt: string; versionId: number }
+  | { ok: false; conflict: true; updatedAt: string; updatedBy: string }
+  | { ok: false; conflict: false; error: string };
+
+/** 另存版次：同時儲存目前檢討 */
+export async function saveProjectVersion(
+  code: string,
+  tool: string,
+  input: unknown,
+  name: string,
+  note: string,
+  updatedBy: string,
+  expected: string | null,
+  force: boolean,
+): Promise<VersionResult> {
+  await requireProject(code);
+  if (!isProjectTool(tool)) return { ok: false, conflict: false, error: "此工具尚未開放存入專案" };
+  const label = name.trim().slice(0, 40);
+  if (!label) return { ok: false, conflict: false, error: "請輸入版次名稱" };
+  const h = REVIEW_HANDLERS[tool];
+  const parsed = h.parse(input);
+  if (!parsed) return { ok: false, conflict: false, error: "資料格式不符，未儲存" };
+  const r = await saveReviewAndVersion(code, tool, h.schema, parsed, h.summarize(parsed as never), updatedBy.trim().slice(0, 40), label, note.trim().slice(0, 200), expected, force);
+  revalidatePath(`/projects/${code}`);
+  if (r.ok) return { ok: true, updatedAt: r.updatedAt.toISOString(), versionId: r.versionId };
+  if (r.reason === "limit") return { ok: false, conflict: false, error: `版次已達 ${VERSION_LIMIT} 個，請管理者刪除不需要的版次後再另存` };
+  return { ok: false, conflict: true, updatedAt: r.updatedAt.toISOString(), updatedBy: r.updatedBy };
+}
+
+const versionPath = (code: string, tool: string) => `/projects/${encodeURIComponent(code)}/${tool}`;
+
+/** 設為目前檢討（表單動作） */
+export async function restoreProjectVersion(code: string, tool: string, id: number, _: FormState, f: FormData): Promise<FormState> {
+  await requireProject(code);
+  if (!isProjectTool(tool)) return { error: "此工具尚未開放存入專案" };
+  const r = await restoreVersion(code, tool, id, text(f, "by", 40));
+  if (!r.ok) return { error: r.reason === "limit" ? `版次已達 ${VERSION_LIMIT} 個，無法自動備份目前檢討；請管理者先刪除不需要的版次` : "找不到此版次" };
+  revalidatePath(`/projects/${code}`);
+  redirect(versionPath(code, tool));
+}
+
+/** 刪除版次（僅管理者） */
+export async function deleteProjectVersion(code: string, tool: string, id: number): Promise<void> {
+  await requireAdmin();
+  if (!isProjectTool(tool)) return;
+  await removeVersion(code, tool, id);
+  revalidatePath(`/projects/${code}`);
+  redirect(`${versionPath(code, tool)}/versions`);
 }

@@ -4,7 +4,7 @@ import { DeleteProjectForm, ProjectInfoForm, ResetPasswordForm } from "@/compone
 import { Card } from "@/components/ToolFields";
 import { PROJECT_TOOLS, summaryText } from "@/lib/projects/tools";
 import { getSession } from "@/server/auth";
-import { getProject, listReviews } from "@/server/projects";
+import { getProject, listReviews, versionCounts } from "@/server/projects";
 import { deleteProject, logout, resetProjectPassword, updateProject } from "../actions";
 
 const dt = (d: Date) => d.toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
@@ -15,7 +15,8 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[code
   if (!session.admin && !session.projects.includes(code)) redirect(`/projects?code=${encodeURIComponent(code)}`);
   const project = await getProject(code);
   if (!project) notFound();
-  const reviews = new Map((await listReviews(code)).map((r) => [r.tool, r]));
+  const [list, counts] = await Promise.all([listReviews(code), versionCounts(code)]);
+  const reviews = new Map(list.map((r) => [r.tool, r]));
 
   return (
     <>
@@ -57,12 +58,19 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[code
                       )}
                     </div>
                     {t.ready ? (
+                      <div className="flex items-center gap-2">
+                      {(counts.get(t.slug) ?? 0) > 0 && (
+                        <Link href={`/projects/${encodeURIComponent(code)}/${t.slug}/versions`} className="text-[0.75rem] text-accent underline">
+                          版次（{counts.get(t.slug)}）
+                        </Link>
+                      )}
                       <Link
                         href={`/projects/${encodeURIComponent(code)}/${t.slug}`}
                         className={`px-3 py-1 text-[0.78rem] font-bold ${r ? "border border-accent text-accent" : "bg-accent text-white"}`}
                       >
                         {r ? "開啟" : "開始檢討"}
                       </Link>
+                      </div>
                     ) : (
                       <Link href={t.href} className="border border-line px-3 py-1 text-[0.75rem] text-muted hover:border-accent">
                         即時規劃

@@ -51,6 +51,21 @@ async function ensureSchema(sql: Sql) {
       primary key (project_code, tool)
     )`;
   await sql`
+    create table if not exists project_review_versions (
+      id bigserial primary key,
+      project_code text not null references projects(code) on delete cascade,
+      tool text not null,
+      name text not null,
+      note text not null default '',
+      schema_version int not null,
+      input jsonb not null,
+      summary jsonb,
+      auto boolean not null default false,
+      created_by text not null default '',
+      created_at timestamptz not null default now()
+    )`;
+  await sql`create index if not exists project_review_versions_tool on project_review_versions (project_code, tool, created_at desc)`;
+  await sql`
     create table if not exists login_attempts (
       key text primary key,
       count int not null default 0,

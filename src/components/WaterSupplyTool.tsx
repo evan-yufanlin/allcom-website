@@ -127,7 +127,11 @@ function systemToForm(s: SystemUI): WaterSupplyForm["systems"][number] {
 
 // ---- 主元件 ----
 
-export default function WaterSupplyTool({ project, initial }: { project?: ProjectContext; initial?: WaterSupplyForm | null } = {}) {
+export default function WaterSupplyTool({
+  project,
+  initial,
+  readOnly = false,
+}: { project?: ProjectContext; initial?: WaterSupplyForm | null; readOnly?: boolean } = {}) {
   const [projectName, setProjectName] = useState(() => initial?.projectName || project?.name || "");
   const [county, setCounty] = useState(initial?.county ?? "臺北市");
   const [district, setDistrict] = useState(initial?.district ?? OTHER_DISTRICT);
@@ -199,7 +203,8 @@ export default function WaterSupplyTool({ project, initial }: { project?: Projec
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       {project && <ProjectSaveBar project={project} tool="water-supply" input={form} />}
-      {/* 基本資料 */}
+      {/* 基本資料（版次檢視時唯讀） */}
+      <fieldset disabled={readOnly} className="contents">
       <Card title="① 基本資料與供水轄區">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Text label="工程名稱（選填）" value={projectName} onChange={setProjectName} className="sm:col-span-3" />
@@ -274,20 +279,23 @@ export default function WaterSupplyTool({ project, initial }: { project?: Projec
             : "105年12月15日前報核之都市更新案（水池＋水塔合計下限改為 0.4 Vd）"}
         </CheckBox>
       </Card>
+      </fieldset>
 
       {/* 用水系統 */}
       <Card
         title="② 用水量與水池、水塔"
         aside={
-          <SmallButton
-            onClick={() => {
-              const s = newSystem(`系統 ${systems.length + 1}`);
-              setSystems((l) => [...l, s]);
-              setActiveId(s.id);
-            }}
-          >
-            ＋ 新增系統
-          </SmallButton>
+          !readOnly && (
+            <SmallButton
+              onClick={() => {
+                const s = newSystem(`系統 ${systems.length + 1}`);
+                setSystems((l) => [...l, s]);
+                setActiveId(s.id);
+              }}
+            >
+              ＋ 新增系統
+            </SmallButton>
+          )
         }
       >
         {systems.length > 1 && (
@@ -308,6 +316,7 @@ export default function WaterSupplyTool({ project, initial }: { project?: Projec
             ))}
           </div>
         )}
+        <fieldset disabled={readOnly} className="contents">
         <SystemEditor
           key={active.id}
           j={j}
@@ -324,12 +333,14 @@ export default function WaterSupplyTool({ project, initial }: { project?: Projec
               : undefined
           }
         />
+        </fieldset>
         {systems.length > 1 && (
           <p className="text-[0.72rem] text-muted">各系統分別檢核水池、水塔容量；總表口徑以各系統一日用水量合計計算。</p>
         )}
       </Card>
 
       {/* 用水計畫 */}
+      <fieldset disabled={readOnly} className="contents">
       <Card title="③ 用水計畫緊急蓄水量（3 日）">
         <p className="text-[0.75rem] leading-relaxed text-muted">
           計畫用水量達每日 300 m³ 以上須提用水計畫，原則上開發基地內總蓄水容量應能滿足三天之用水需求。未達 300 m³
@@ -370,6 +381,7 @@ export default function WaterSupplyTool({ project, initial }: { project?: Projec
           />
         </div>
       </Card>
+      </fieldset>
 
       {hasDemand ? (
         <Results
