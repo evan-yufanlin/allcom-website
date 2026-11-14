@@ -62,7 +62,11 @@ function toInput(projectName: string, clearances: Clearances, rows: RowUI[]): Su
   };
 }
 
-export default function SubstationTool({ project, initial }: { project?: ProjectContext; initial?: SubstationInput | null } = {}) {
+export default function SubstationTool({
+  project,
+  initial,
+  readOnly = false,
+}: { project?: ProjectContext; initial?: SubstationInput | null; readOnly?: boolean } = {}) {
   const [projectName, setProjectName] = useState(() => initial?.projectName || project?.name || "");
   const [state, setState] = useState(() => (initial ? fromInput(initial) : fromTemplate("three")));
   const [today] = useState(() => new Date());
@@ -81,6 +85,8 @@ export default function SubstationTool({ project, initial }: { project?: Project
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       {project && <ProjectSaveBar project={project} tool="substation" input={current} emptyNote="尚未儲存（預設帶入三列範本）" />}
+      {/* 輸入（版次檢視時唯讀） */}
+      <fieldset disabled={readOnly} className="contents">
       <Card title="① 基本資料與範本">
         <Text label="工程名稱（選填）" value={projectName} onChange={setProjectName} />
         <div className="flex flex-wrap items-center gap-2">
@@ -131,6 +137,7 @@ export default function SubstationTool({ project, initial }: { project?: Project
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.cast}</p>
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.lv}</p>
       </Card>
+      </fieldset>
 
       {hasItems ? (
         <Results result={result} projectName={projectName} fileName={fileName} generatedOn={dateStamp(today, "/")} />

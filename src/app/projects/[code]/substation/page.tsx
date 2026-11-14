@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import SubstationTool from "@/components/SubstationTool";
 import { parseSubstationInput } from "@/lib/projects/tools";
 import { getSession } from "@/server/auth";
-import { getProject, getReview } from "@/server/projects";
+import { getProject, getReview, versionCounts } from "@/server/projects";
 
 export default async function ProjectSubstationPage({ params }: PageProps<"/projects/[code]/substation">) {
   const code = decodeURIComponent((await params).code);
@@ -11,7 +11,7 @@ export default async function ProjectSubstationPage({ params }: PageProps<"/proj
   if (!session.admin && !session.projects.includes(code)) redirect(`/projects?code=${encodeURIComponent(code)}`);
   const project = await getProject(code);
   if (!project) notFound();
-  const review = await getReview(code, "substation");
+  const [review, counts] = await Promise.all([getReview(code, "substation"), versionCounts(code)]);
   const initial = review ? parseSubstationInput(review.input) : null;
 
   return (
@@ -32,6 +32,7 @@ export default async function ProjectSubstationPage({ params }: PageProps<"/proj
             name: project.name,
             savedAt: review?.updated_at.toISOString() ?? null,
             savedBy: review?.updated_by ?? "",
+            versions: counts.get("substation") ?? 0,
           }}
           initial={initial}
         />

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { saveProjectReview } from "@/app/projects/actions";
+import Link from "next/link";
+import { saveProjectReview, saveProjectVersion } from "@/app/projects/actions";
 import { Text } from "@/components/ToolFields";
 import type { ProjectToolSlug } from "@/lib/projects/tools";
 
@@ -10,6 +11,8 @@ export interface ProjectContext {
   name: string;
   savedAt: string | null;
   savedBy: string;
+  /** 已存版次數 */
+  versions?: number;
 }
 
 const fmtTime = (iso: string) => new Date(iso).toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
@@ -31,7 +34,11 @@ export default function ProjectSaveBar({
   const [by, setBy] = useState(project.savedBy);
   const [status, setStatus] = useState<{ kind: "ok" | "err" | "conflict"; text: string; at?: string; by?: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [versions, setVersions] = useState(project.versions ?? 0);
+  /** 另存版次表單（null 為收合） */
+  const [draft, setDraft] = useState<{ name: string; note: string } | null>(null);
   const dirty = json !== saved.json;
+  const versionsHref = `/projects/${encodeURIComponent(project.code)}/${tool}/versions`;
 
   useEffect(() => {
     if (!dirty) return;
@@ -40,13 +47,21 @@ export default function ProjectSaveBar({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  /** 儲存目前檢討；有 draft 時另存版次（同時儲存目前檢討） */
   async function save(force: boolean) {
     setBusy(true);
     try {
-      const r = await saveProjectReview(project.code, tool, JSON.parse(json), by, saved.at, force);
+      const v = draft;
+      const r = v
+        ? await saveProjectVersion(project.code, tool, JSON.parse(json), v.name, v.note, by, saved.at, force)
+        : await saveProjectReview(project.code, tool, JSON.parse(json), by, saved.at, force);
       if (r.ok) {
         setSaved({ json, at: r.updatedAt, by });
-        setStatus({ kind: "ok", text: `已儲存（${fmtTime(r.updatedAt)}）` });
+        if (v) {
+          setVersions((n) => n + 1);
+          setDraft(null);
+        }
+        setStatus({ kind: "ok", text: v ? `已另存版次「${v.name.trim()}」並儲存目前檢討（${fmtTime(r.updatedAt)}）` : `已儲存（${fmtTime(r.updatedAt)}）` });
       } else if (r.conflict) {
         setStatus({ kind: "conflict", text: `此檢討已由 ${r.updatedBy || "其他人"} 於 ${fmtTime(r.updatedAt)} 更新。`, at: r.updatedAt, by: r.updatedBy });
       } else {
@@ -77,9 +92,35 @@ export default function ProjectSaveBar({
           onClick={() => save(false)}
           className="bg-accent px-4 py-1.5 text-[0.82rem] font-bold text-white disabled:opacity-40"
         >
-          {busy ? "儲存中…" : "儲存"}
+          {busy && !draft ? "儲存中…" : "儲存"}
         </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setDraft(draft ? null : { name: "", note: "" })}
+          className="border border-accent bg-background px-3 py-1.5 text-[0.82rem] font-bold text-accent disabled:opacity-40"
+        >
+          {draft ? "取消另存" : "另存版次"}
+        </button>
+        <Link href={versionsHref} className="py-1.5 text-[0.78rem] text-accent underline">
+          版次（{versions}）
+        </Link>
       </div>
+      {draft && (
+        <div className="flex flex-wrap items-end gap-3 border-t border-accent/40 pt-2">
+          <Text label="版次名稱（必填，例：方案 A、11/14 送審版）" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} className="min-w-48 flex-1" />
+          <Text label="備註（選填）" value={draft.note} onChange={(note) => setDraft({ ...draft, note })} className="min-w-48 flex-[2]" />
+          <button
+            type="button"
+            disabled={busy || !draft.name.trim()}
+            onClick={() => save(false)}
+            className="bg-accent px-4 py-1.5 text-[0.82rem] font-bold text-white disabled:opacity-40"
+          >
+            {busy ? "另存中…" : "確定另存"}
+          </button>
+          <span className="basis-full text-[0.7rem] text-muted">另存版次時，同時儲存目前檢討；版次存檔後不可修改。</span>
+        </div>
+      )}
       {status && (
         <p className={`text-[0.78rem] ${status.kind === "ok" ? "text-accent" : "text-[var(--phase-r)]"}`}>
           {status.text}
