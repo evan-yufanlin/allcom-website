@@ -42,7 +42,7 @@ export interface SubstationSummary {
   area: number;
 }
 
-const GROUPS: Group[] = ["panel", "oil", "cast", "custom"];
+const GROUPS: Group[] = ["panel", "oil", "cast", "lv", "custom"];
 const DOORS: Door[] = ["single", "double", "none"];
 const num = (v: unknown, max = 1e6) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= max;
 

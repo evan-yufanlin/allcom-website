@@ -1,13 +1,26 @@
 // 變壓器規格資料：士林電機「油浸式配電變壓器」「模鑄式變壓器」型錄（2019.05 版）。
+// 低壓模鑄式、低壓乾式及油浸式 DI 小容量為第二版（docs/lv-transformers-spec.md）。
 // 由型錄 PDF 抽出後逐列核對；pages 為型錄印刷頁碼。修改後執行 `npm run verify:transformers`。
 
-export type Kind = "oil" | "cast";
-export type Secondary = "220" | "380Y";
-export type SeriesId = "oil-sk" | "oil-he" | "oil-di" | "oil-dh" | "cast-evd3" | "cast-sd";
+export type Kind = "oil" | "cast" | "dry";
+export type Primary = "hv" | "lv";
+export type Secondary = "220" | "380Y" | "208Y";
+export type SeriesId =
+  | "oil-sk"
+  | "oil-he"
+  | "oil-di"
+  | "oil-dh"
+  | "oil-di-s"
+  | "oil-di-lv"
+  | "cast-evd3"
+  | "cast-sd"
+  | "cast-lv"
+  | "dry-lv";
 
 export interface SeriesInfo {
   id: SeriesId;
   kind: Kind;
+  primary: Primary;
   name: string;
   /** 外形尺寸取法（型錄代號） */
   sizeNote: string;
@@ -17,20 +30,24 @@ export interface SeriesInfo {
 export const CATALOGS: Record<Kind, string> = {
   oil: "士林電機 油浸式配電變壓器型錄（2019.05 版）",
   cast: "士林電機 模鑄式變壓器型錄（2019.05 版）",
+  dry: "士林電機 模鑄式變壓器型錄（2019.05 版）",
 };
 
-export const KIND_NAME: Record<Kind, string> = { oil: "油浸式", cast: "模鑄式" };
+export const KIND_NAME: Record<Kind, string> = { oil: "油浸式", cast: "模鑄式", dry: "乾式" };
 
-export const SECONDARY_NAME: Record<Secondary, string> = { "220": "220V", "380Y": "380Y/220V" };
+export const PRIMARY_NAME: Record<Primary, string> = { hv: "高壓 22.8/11.4 kV", lv: "低壓 480 V 以下" };
+
+export const SECONDARY_NAME: Record<Secondary, string> = { "220": "220V", "380Y": "380Y/220V", "208Y": "208Y/120V" };
 
 export const SERIES: SeriesInfo[] = [
-  { id: "oil-sk", kind: "oil", name: "SK 型（抗諧波）", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
-  { id: "oil-he", kind: "oil", name: "高效率型", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
-  { id: "oil-di", kind: "oil", name: "DI 系列", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
-  { id: "oil-dh", kind: "oil", name: "DH 系列", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
+  { id: "oil-sk", kind: "oil", primary: "hv", name: "SK 型（抗諧波）", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
+  { id: "oil-he", kind: "oil", primary: "hv", name: "高效率型", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
+  { id: "oil-di", kind: "oil", primary: "hv", name: "DI 系列", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
+  { id: "oil-dh", kind: "oil", primary: "hv", name: "DH 系列", sizeNote: "寬 X × 深 Y × 高 ZS＋ZH；導口型 XD × Y × Z" },
   {
     id: "cast-evd3",
     kind: "cast",
+    primary: "hv",
     name: "高效率型 EVD3",
     sizeNote: "本體（IP00）X × Y × Z；配電箱（IP20）XC × YC × ZC",
     note: "型錄外形尺寸表僅列 380Y/220V，220V 請洽廠商確認",
@@ -38,9 +55,42 @@ export const SERIES: SeriesInfo[] = [
   {
     id: "cast-sd",
     kind: "cast",
+    primary: "hv",
     name: "高壓模鑄 SD",
     sizeNote: "本體（IP00）L × W × H",
     note: "型錄外形尺寸表僅列 380(220)V，220V 請洽廠商確認；配電箱尺寸型錄未列，請洽廠商",
+  },
+  {
+    id: "oil-di-s",
+    kind: "oil",
+    primary: "hv",
+    name: "DI 系列小容量（22.8 kV）",
+    sizeNote: "寬 X × 深 Y × 高 Z（含套管）",
+    note: "一次側 22.8 kV；20 kVA 型錄特性表未列",
+  },
+  {
+    id: "oil-di-lv",
+    kind: "oil",
+    primary: "lv",
+    name: "DI 系列低壓轉低壓",
+    sizeNote: "寬 X × 深 Y × 高 Z",
+    note: "一次側 380／220 V（3～15 kVA）、480 V 以下（20～100 kVA）；208Y/120V 型錄僅 3～15 kVA（亦可 190Y/110V）；特性值僅 208Y/120V 列有（型錄 P.10），其餘型錄未明示，不列",
+  },
+  {
+    id: "cast-lv",
+    kind: "cast",
+    primary: "lv",
+    name: "低壓模鑄式（F 級）",
+    sizeNote: "本體（IP00）L × W × H；外箱（IP20）L × W × H",
+    note: "一次側 480／460／440／380／220 V；二次側另有 220Y/127、200Y/115、199Y/115、190Y/110、110 V，型錄註明各電壓外形尺寸相同",
+  },
+  {
+    id: "dry-lv",
+    kind: "dry",
+    primary: "lv",
+    name: "低壓乾式（H 級）",
+    sizeNote: "本體（IP00）L × W × H；外箱（IP20）L × W × H",
+    note: "一次側 480／460／440／380／220 V；二次側另有 220Y/127、200Y/115、199Y/115、190Y/110、110 V，型錄註明各電壓外形尺寸相同",
   },
 ];
 
@@ -208,5 +258,150 @@ export const ROWS: TransformerRow[] = [
   { series: "cast-sd", kva: 2500, secondary: "380Y", size: [1850, 1260, 2325], weight: 4900, imp: "6", noise: 68, pages: "P.5" },
   { series: "cast-sd", kva: 3000, secondary: "380Y", size: [2050, 1260, 2345], weight: 6050, imp: "6", noise: 68, pages: "P.5" },
 ];
+
+// ---- 第二版：低壓模鑄式、低壓乾式（模鑄式型錄 P.7～P.10） ----
+
+/** [kVA, IP00 H, L, W, 重量, IP20 H, L, W, 重量] */
+type LvRow = [number, number, number, number, number, number, number, number, number];
+
+const LV_CAST: LvRow[] = [
+  [3, 340, 325, 260, 45, 535, 385, 250, 60],
+  [5, 410, 325, 260, 55, 535, 385, 250, 70],
+  [7.5, 395, 445, 260, 70, 585, 505, 300, 92],
+  [10, 430, 445, 260, 80, 585, 505, 300, 100],
+  [15, 455, 445, 300, 100, 585, 505, 300, 120],
+  [20, 515, 445, 300, 120, 645, 505, 300, 140],
+  [25, 535, 535, 300, 140, 715, 595, 350, 170],
+  [30, 585, 535, 300, 155, 735, 595, 350, 185],
+  [37.5, 620, 740, 380, 195, 890, 810, 400, 245],
+  [50, 680, 740, 380, 220, 890, 810, 400, 270],
+  [75, 810, 800, 390, 320, 1100, 880, 450, 385],
+  [100, 890, 860, 450, 410, 1135, 940, 450, 470],
+  [150, 1085, 860, 450, 490, 1320, 940, 450, 565],
+  [200, 1030, 1110, 550, 690, 1355, 1180, 600, 795],
+  [250, 1090, 1110, 550, 785, 1415, 1210, 600, 895],
+];
+
+const LV_DRY: LvRow[] = [
+  [3, 320, 320, 260, 35, 495, 370, 250, 47],
+  [5, 375, 320, 260, 40, 495, 370, 250, 50],
+  [7.5, 400, 320, 260, 50, 520, 370, 250, 60],
+  [10, 385, 375, 300, 70, 510, 435, 300, 85],
+  [15, 430, 375, 300, 80, 560, 435, 300, 100],
+  [20, 510, 375, 300, 95, 635, 435, 300, 110],
+  [25, 530, 415, 300, 120, 690, 475, 350, 135],
+  [30, 525, 530, 340, 135, 715, 595, 350, 165],
+  [37.5, 555, 530, 340, 150, 715, 595, 350, 180],
+  [50, 575, 590, 400, 200, 780, 660, 400, 230],
+  [75, 700, 640, 400, 250, 895, 710, 450, 300],
+  [100, 880, 800, 450, 370, 1100, 880, 450, 430],
+  [150, 1050, 800, 450, 450, 1280, 880, 450, 510],
+  [200, 1030, 980, 550, 600, 1355, 1050, 600, 690],
+  [250, 1090, 980, 550, 690, 1415, 1080, 600, 780],
+];
+
+/** 型錄阻抗電壓為合併儲存格，依容量區段取值 */
+const lvCastImp = (k: number) => (k <= 20 ? "≦4.5" : k <= 30 ? "3.0～5.5" : k <= 150 ? "4.0～6.0" : "4.5～7.0");
+const lvDryImp = (k: number) => (k <= 25 ? "≦4.5" : "3.0～5.5");
+const lvNoise = (k: number) => (k <= 50 ? 50 : k <= 150 ? 55 : 58);
+
+/** 型錄註明各二次電壓外形尺寸相同，故三種二次側皆列 */
+const LV_SECONDARIES: Secondary[] = ["220", "380Y", "208Y"];
+
+const lvRows = (series: "cast-lv" | "dry-lv", data: LvRow[], imp: (k: number) => string, pages: string): TransformerRow[] =>
+  LV_SECONDARIES.flatMap((secondary) =>
+    data.map(([kva, h0, l0, w0, wt0, h2, l2, w2, wt2]): TransformerRow => ({
+      series,
+      kva,
+      secondary,
+      size: [l0, w0, h0],
+      weight: wt0,
+      box: [l2, w2, h2],
+      boxWeight: wt2,
+      imp: imp(kva),
+      noise: lvNoise(kva),
+      pages,
+    })),
+  );
+
+// ---- 第二版：油浸式 DI 系列小容量（油浸式型錄 P.10～P.13） ----
+
+/** [kVA, X, Y, Z, 油量, 重量] */
+type SmallOil = [number, number, number, number, number, number];
+
+const OIL_LV_3_15: SmallOil[] = [
+  [3, 370, 340, 375, 6, 40],
+  [5, 370, 340, 445, 7, 53],
+  [10, 405, 390, 565, 20, 85],
+  [15, 405, 390, 695, 26, 110],
+];
+const OIL_LV_20_100: SmallOil[] = [
+  [20, 440, 405, 680, 50, 175],
+  [30, 580, 435, 760, 65, 250],
+  [50, 610, 455, 825, 80, 310],
+  [75, 790, 535, 875, 110, 450],
+  [100, 680, 875, 1030, 130, 560],
+];
+const OIL_HV_5_100: SmallOil[] = [
+  [5, 660, 375, 1020, 55, 142],
+  [10, 680, 380, 1070, 70, 170],
+  [20, 800, 410, 1050, 75, 250],
+  [30, 800, 420, 1145, 100, 320],
+  [50, 805, 480, 1165, 120, 410],
+  [75, 790, 600, 1235, 150, 530],
+  [100, 805, 620, 1290, 180, 630],
+];
+
+/** 特性表（型錄 P.10）：[效率 %, 電壓調整率 %, 無載電流 %, 全損失 W] */
+type Char = [number, number, number, number];
+const CHAR_LV_208: Record<number, Char> = {
+  3: [95.2, 3.5, 11, 151],
+  5: [96.1, 2.85, 9, 202],
+  10: [96.5, 2.55, 7, 362],
+  15: [96.85, 2.25, 7, 487],
+};
+const CHAR_HV_SMALL: Record<number, Char> = {
+  5: [96.0, 2.9, 9, 208],
+  10: [96.35, 2.6, 7, 378],
+  30: [97.2, 2.0, 5, 864],
+  50: [97.3, 1.9, 5, 1387],
+  75: [97.45, 1.85, 5, 1962],
+  100: [97.55, 1.8, 5, 2511],
+};
+
+const oilSmall = (
+  series: "oil-di-s" | "oil-di-lv",
+  secondary: Secondary,
+  data: SmallOil[],
+  pages: string,
+  chars?: Record<number, Char>,
+): TransformerRow[] =>
+  data.map(([kva, x, y, z, oil, weight]) => {
+    const c = chars?.[kva];
+    return {
+      series,
+      kva,
+      secondary,
+      size: [x, y, z],
+      weight,
+      oil,
+      ...(c ? { eff: c[0], reg: c[1], nlc: c[2], fullLoss: c[3] } : {}),
+      pages: c ? `P.10、${pages}` : pages,
+    };
+  });
+
+ROWS.push(
+  ...lvRows("cast-lv", LV_CAST, lvCastImp, "P.7、P.8"),
+  ...lvRows("dry-lv", LV_DRY, lvDryImp, "P.9、P.10"),
+  ...oilSmall("oil-di-s", "220", OIL_HV_5_100, "P.13", CHAR_HV_SMALL),
+  ...oilSmall("oil-di-s", "380Y", OIL_HV_5_100, "P.13", CHAR_HV_SMALL),
+  ...oilSmall("oil-di-lv", "220", OIL_LV_3_15, "P.11"),
+  ...oilSmall("oil-di-lv", "208Y", OIL_LV_3_15, "P.11", CHAR_LV_208),
+  ...oilSmall("oil-di-lv", "220", OIL_LV_20_100, "P.12"),
+  ...oilSmall("oil-di-lv", "380Y", OIL_LV_20_100, "P.12"),
+);
+
+/** 低壓模鑄式、低壓乾式（供自設變電站設備庫） */
+export const LV_TRANSFORMERS = { cast: LV_CAST, dry: LV_DRY };
 
 export const CAPACITIES = [...new Set(ROWS.map((r) => r.kva))].sort((a, b) => a - b);

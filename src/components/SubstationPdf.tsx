@@ -74,16 +74,31 @@ function Plan({ r }: { r: SubstationResult }) {
             stroke={STROKE[x.group]}
             strokeWidth={x.group === "room" ? u * 0.18 : u * 0.06}
           />
-          {x.name && (
-            <>
-              <Text x={x.x + x.w / 2} y={x.y + x.h / 2} textAnchor="middle" style={{ fontFamily: FONT_FAMILY, fontSize: u * 0.85 }} fill="#14141F">
-                {x.name}
-              </Text>
-              <Text x={x.x + x.w / 2} y={x.y + x.h / 2 + u * 1.05} textAnchor="middle" style={{ fontFamily: FONT_FAMILY, fontSize: u * 0.6 }} fill="#5C5F72">
-                {x.sub}
-              </Text>
-            </>
-          )}
+          {x.name &&
+            (() => {
+              const k = x.scale ?? 1;
+              const lines = x.lines ?? [x.name];
+              const lh = u * 0.85 * 1.1 * k;
+              const top = x.y + x.h / 2 - ((lines.length - 1) * lh) / 2;
+              return (
+                <>
+                  {lines.map((l, j) => (
+                    <Text key={j} x={x.x + x.w / 2} y={top + j * lh} textAnchor="middle" style={{ fontFamily: FONT_FAMILY, fontSize: u * 0.85 * k }} fill="#14141F">
+                      {l}
+                    </Text>
+                  ))}
+                  <Text
+                    x={x.x + x.w / 2}
+                    y={top + (lines.length - 1) * lh + u * 1.05 * k}
+                    textAnchor="middle"
+                    style={{ fontFamily: FONT_FAMILY, fontSize: u * 0.6 * k }}
+                    fill="#5C5F72"
+                  >
+                    {x.sub}
+                  </Text>
+                </>
+              );
+            })()}
         </G>
       ))}
       {d.lines.map((l, i) => (
@@ -222,6 +237,7 @@ export default function SubstationPdf({
           </Text>
           <Text style={s.note}>{NOTES.backToBack}</Text>
           <Text style={s.note}>設備尺寸依據：{SOURCE}。{NOTES.cast}</Text>
+          {r.rows.some((row) => row.items.some((e) => e.group === "lv")) && <Text style={s.note}>{NOTES.lv}</Text>}
         </View>
 
         <View wrap={false}>

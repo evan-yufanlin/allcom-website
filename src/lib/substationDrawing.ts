@@ -9,6 +9,10 @@ export interface DrawRect {
   group: Group | "room";
   name?: string;
   sub?: string;
+  /** 名稱分行（設備較窄時依空格斷行） */
+  lines?: string[];
+  /** 文字縮放（設備較窄時縮小，1 為原尺寸） */
+  scale?: number;
 }
 export interface DrawLine {
   x1: number;
@@ -41,6 +45,7 @@ export const FILL: Record<DrawRect["group"], string> = {
   panel: "#D5E6E1",
   oil: "#F6DFAE",
   cast: "#DCD6F4",
+  lv: "#F3D9E4",
   custom: "#E5E7EB",
 };
 export const STROKE: Record<DrawRect["group"], string> = {
@@ -48,10 +53,26 @@ export const STROKE: Record<DrawRect["group"], string> = {
   panel: "#5E8A7E",
   oil: "#B38A2E",
   cast: "#6D5FB8",
+  lv: "#A8577A",
   custom: "#6B7280",
 };
 
 const n = (v: number) => v.toLocaleString("en-US");
+
+/** 估算文字寬度：全形字 1 字高，半形約 0.55 字高 */
+const textWidth = (t: string, fs: number) => [...t].reduce((w, c) => w + (c.charCodeAt(0) > 0x2e80 ? fs : 0.55 * fs), 0);
+
+/** 名稱放不下時依空格斷行並縮小，使文字落在設備框內 */
+export function fitLabel(name: string, w: number, h: number, unit: number): { lines: string[]; scale: number } {
+  const fs = unit * 0.85;
+  const room = w * 0.9;
+  if (textWidth(name, fs) <= room) return { lines: [name], scale: 1 };
+  const lines = name.split(" ").filter(Boolean);
+  const widest = Math.max(...lines.map((l) => textWidth(l, fs)));
+  // 高度：名稱各行 1.1 行高＋尺寸 1 行
+  const tall = (lines.length * 1.1 + 1) * fs;
+  return { lines, scale: Math.min(1, room / widest, (h * 0.9) / tall) };
+}
 
 export function buildDrawing(r: SubstationResult): Drawing {
   const L = r.length;
@@ -64,7 +85,16 @@ export function buildDrawing(r: SubstationResult): Drawing {
 
   for (const row of r.rows) {
     for (const it of row.items) {
-      rects.push({ x: it.x, y: it.y, w: it.width, h: it.depth, group: it.group, name: it.name, sub: `${n(it.width)}×${n(it.depth)}` });
+      rects.push({
+        x: it.x,
+        y: it.y,
+        w: it.width,
+        h: it.depth,
+        group: it.group,
+        name: it.name,
+        sub: `${n(it.width)}×${n(it.depth)}`,
+        ...fitLabel(it.name, it.width, it.depth, unit),
+      });
       // 門扇：鉸鏈在設備左端（雙開門兩端），開向前側
       const frontY = row.facing === "down" ? it.y + it.depth : it.y;
       const dir = row.facing === "down" ? 1 : -1;

@@ -22,6 +22,7 @@ import {
   type Door,
   type Equip,
   type Facing,
+  type LibraryItem,
   type SubstationResult,
 } from "@/lib/substation";
 import { buildDrawing } from "@/lib/substationDrawing";
@@ -128,6 +129,7 @@ export default function SubstationTool({ project, initial }: { project?: Project
           />
         ))}
         <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.cast}</p>
+        <p className="text-[0.72rem] leading-relaxed text-muted">{NOTES.lv}</p>
       </Card>
 
       {hasItems ? (
@@ -203,9 +205,7 @@ function RowEditor({
               item={e}
               onPick={(lib) => {
                 if (lib) {
-                  const { id: _id, ...equip } = lib;
-                  void _id;
-                  setItem(e.key, { ...equip, height: lib.height });
+                  setItem(e.key, { ...toEquip(lib), height: lib.height });
                 } else {
                   setItem(e.key, { group: "custom" });
                   setEditing(e.key);
@@ -268,14 +268,12 @@ function RowEditor({
           label="加入設備"
           value={pick}
           onChange={setPick}
-          options={LIBRARY.map((e) => ({ value: e.id, label: `${GROUP_NAME[e.group]}｜${e.name}（${e.width}×${e.depth}）` }))}
+          options={LIBRARY.map((e) => ({ value: e.id, label: `${e.menu ?? GROUP_NAME[e.group]}｜${e.name}（${e.width}×${e.depth}）` }))}
         />
         <Num label="數量" integer value={qty} onChange={(v) => setQty(v ?? 1)} />
         <SmallButton
           onClick={() => {
-            const e = LIBRARY.find((x) => x.id === pick)!;
-            const { id: _id, ...equip } = e;
-            void _id;
+            const equip = toEquip(LIBRARY.find((x) => x.id === pick)!);
             setItems((items) => [...items, ...Array.from({ length: Math.max(1, qty) }, () => ({ ...equip, key: newId() }))]);
           }}
         >
@@ -313,9 +311,15 @@ function RowEditor({
 }
 
 /** 依名稱與尺寸對應標準設備；自訂或已修改尺寸者回傳 undefined */
+/** 設備庫項目 → 設備（去除 id、選單分組） */
+const toEquip = ({ id: _id, menu: _menu, ...equip }: LibraryItem): Equip => (void _id, void _menu, equip);
+
 const libraryOf = (e: Equip) => (e.group === "custom" ? undefined : LIBRARY.find((l) => l.name === e.name && l.width === e.width && l.depth === e.depth));
 
-const PICK_GROUPS = (["panel", "oil", "cast"] as const).map((g) => ({ group: g, items: LIBRARY.filter((l) => l.group === g) }));
+const PICK_GROUPS = [...new Set(LIBRARY.filter((l) => l.group !== "custom").map((l) => l.menu ?? GROUP_NAME[l.group]))].map((label) => ({
+  label,
+  items: LIBRARY.filter((l) => (l.menu ?? GROUP_NAME[l.group]) === label),
+}));
 
 /** 設備方塊上之規格下拉選單（依種類分組），選擇後原位替換 */
 function EquipPicker({ item, onPick }: { item: Equip; onPick: (lib: (typeof LIBRARY)[number] | null) => void }) {
@@ -328,7 +332,7 @@ function EquipPicker({ item, onPick }: { item: Equip; onPick: (lib: (typeof LIBR
       className="max-w-[11rem] border-0 bg-transparent py-0.5 pr-1 text-[0.75rem] font-bold outline-none hover:text-accent focus:text-accent"
     >
       {PICK_GROUPS.map((g) => (
-        <optgroup key={g.group} label={GROUP_NAME[g.group]}>
+        <optgroup key={g.label} label={g.label}>
           {g.items.map((l) => (
             <option key={l.id} value={l.id}>
               {l.name}

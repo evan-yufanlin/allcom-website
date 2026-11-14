@@ -1,7 +1,8 @@
 // 自設變電站空間檢討（docs/substation-spec.md）。
 // 純計算模組：不依賴 React，可由 scripts/verify-substation.ts 以 node 直接執行。
+import { LV_TRANSFORMERS } from "../data/transformers.ts";
 
-export type Group = "panel" | "oil" | "cast" | "custom";
+export type Group = "panel" | "oil" | "cast" | "lv" | "custom";
 export type Door = "single" | "double" | "none";
 export type Facing = "down" | "up";
 
@@ -16,6 +17,8 @@ export interface Equip {
 
 export interface LibraryItem extends Equip {
   id: string;
+  /** 下拉選單分組（未設定時依 group） */
+  menu?: string;
 }
 
 export const SOURCE = "配電盤廠商提供之標準圖（尺寸由圖面判讀）";
@@ -24,6 +27,7 @@ export const GROUP_NAME: Record<Group, string> = {
   panel: "配電盤",
   oil: "油浸式變壓器",
   cast: "模鑄式變壓器",
+  lv: "低壓變壓器",
   custom: "自訂",
 };
 
@@ -74,6 +78,24 @@ export const LIBRARY: LibraryItem[] = [
     height,
     door: "double",
   })),
+  ...(["cast", "dry"] as const).flatMap((k) =>
+    (["IP00", "IP20"] as const).flatMap((ip) =>
+      LV_TRANSFORMERS[k].map(([kva, h0, l0, w0, , h2, l2, w2]): LibraryItem => {
+        const type = k === "cast" ? "低壓模鑄" : "低壓乾式";
+        const menu = `${k === "cast" ? "低壓模鑄式" : "低壓乾式"} ${ip}${ip === "IP00" ? "（無外箱）" : "（附外箱）"}`;
+        return {
+          id: `lv-${k}-${ip.toLowerCase()}-${kva}`,
+          name: `${type} ${ip} ${kva}kVA`,
+          menu,
+          group: "lv",
+          width: ip === "IP00" ? l0 : l2,
+          depth: ip === "IP00" ? w0 : w2,
+          height: ip === "IP00" ? h0 : h2,
+          door: "none",
+        };
+      }),
+    ),
+  ),
 ];
 
 export const libraryItem = (id: string) => {
@@ -294,12 +316,13 @@ export const NOTES = {
   backToBack: "背對背距離量至兩列最突出之設備背面（列深取該列最深設備），為實際最窄處。",
   door: "門扇半徑：配電盤單門取盤寬，模鑄式雙開門每扇取寬度之半。標準圖無門寬與開啟角度資料，若實際門較小或不同時開啟，可忽略。",
   cast: "模鑄式側視圖深度兩端各標 40（底座或把手突出），實際佔地可能再加 80；標準圖未列 1000 kVA，請以自訂設備輸入。",
+  lv: "低壓變壓器（3～250 kVA，含 208Y/120V）尺寸取自士林電機模鑄式變壓器型錄（2019.05 版）P.7～P.10，寬取 L、深取 W；IP00 無外箱者應設於有防護之場所，與牆或他設備之距離請依廠商建議；外箱型錄未標示門，以無門計。",
 };
 
 export const REMINDERS = [
   "油浸式變壓器同室之防火區劃、擋油與集油設施尚未計入。",
   "電纜溝、進出線與高壓側連接方式尚未計入。",
-  "室內淨高依設備高度檢討（模鑄式最高 2950 mm；油浸式與配電盤標準圖無高度）。",
+  "室內淨高依設備高度檢討（模鑄式最高 2950 mm；低壓變壓器最高 1415 mm；油浸式與配電盤標準圖無高度）。",
   "變壓器緊貼盤體時，請廠商確認散熱與維修空間。",
   "高壓電度表裝於 MOF 盤內，盤前工作空間至少 1.5 m；另設低壓電度表接線箱者，箱前至少 0.9 m（用戶用電設備裝置規則第 1009 條，115.11.4 修正）。",
 ];
